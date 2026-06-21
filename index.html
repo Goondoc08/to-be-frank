@@ -1,0 +1,1934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- viewport-fit=cover is required for safe-area-inset-* on iOS notch/home bar -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+  <!-- iOS PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="To Be Frank">
+  <meta name="theme-color" content="#19191c">
+
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.json">
+  <title>To Be Frank</title>
+
+  <!-- DM Sans — geometric, highly legible, mid-century feel -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+
+  <style>
+    /* =============================================
+       DESIGN TOKENS
+       ============================================= */
+    :root {
+      /* Backgrounds — warm dark, not cold black */
+      --bg-app:      #19191c;
+      --bg-surface:  #232327;
+      --bg-card:     #2b2b30;
+      --bg-elevated: #333338;
+
+      /* Accent — warm muted green (Runna-meets-mid-century) */
+      --accent:       #52b788;
+      --accent-hover: #63c799;
+      --accent-dim:   #1c3d2c;
+
+      /* Warm amber for secondary emphasis */
+      --amber:     #c9a55a;
+      --amber-dim: #3a2c10;
+
+      /* Text — warm tones, strong hierarchy */
+      --text-primary:   #f0ede8;
+      --text-secondary: #9a9690;
+      --text-tertiary:  #5e5c58;
+      --text-on-accent: #0e1f17;
+
+      /* Borders */
+      --border:        rgba(255,255,255,0.07);
+      --border-strong: rgba(255,255,255,0.13);
+
+      /* Activity type palette */
+      --c-run:      #52b788;
+      --c-strength: #c9a55a;
+      --c-mobility: #a07eb8;
+      --c-tennis:   #7eb8d4;
+      --c-boulder:  #c47c5a;
+      --c-rest:     #5e5c58;
+
+      /* Spacing scale */
+      --sp-xs: 4px;
+      --sp-sm: 8px;
+      --sp-md: 16px;
+      --sp-lg: 24px;
+      --sp-xl: 32px;
+
+      /* Radius scale */
+      --r-sm:   8px;
+      --r-md:   12px;
+      --r-lg:   16px;
+      --r-xl:   20px;
+      --r-pill: 999px;
+
+      --font: 'DM Sans', system-ui, -apple-system, sans-serif;
+
+      /* iOS safe areas (fallback to 0) */
+      --safe-top:    env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left:   env(safe-area-inset-left, 0px);
+      --safe-right:  env(safe-area-inset-right, 0px);
+
+      --nav-height: 58px;
+    }
+
+    /* =============================================
+       RESET
+       ============================================= */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0; padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html {
+      /* Fallback for browsers that don't support dvh */
+      height: -webkit-fill-available;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg-app);
+      color: var(--text-primary);
+      /* dvh = dynamic viewport height — correct on iOS (excludes browser chrome) */
+      min-height: 100dvh;
+      min-height: -webkit-fill-available;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* =============================================
+       APP SHELL
+       ============================================= */
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      height: -webkit-fill-available;
+    }
+
+    /* =============================================
+       HEADER
+       ============================================= */
+    .app-header {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      /* Safe area top handles the notch */
+      padding: calc(var(--safe-top) + 10px) var(--sp-md) 10px;
+      background: var(--bg-app);
+      border-bottom: 1px solid var(--border);
+      z-index: 20;
+    }
+
+    .logo {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+    .logo em {
+      color: var(--accent);
+      font-style: normal;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+    }
+
+    .icon-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--r-pill);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: background 0.15s, color 0.15s;
+    }
+    .icon-btn:active { background: var(--bg-elevated); color: var(--text-primary); }
+    .icon-btn svg { width: 16px; height: 16px; }
+
+    /* =============================================
+       SCROLLABLE CONTENT
+       ============================================= */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+      scrollbar-width: none;
+    }
+    /* Hide scrollbar on touch/mobile, show subtle one on desktop */
+    .main::-webkit-scrollbar { display: none; }
+    @media (hover: hover) and (pointer: fine) {
+      .main::-webkit-scrollbar { display: block; width: 4px; }
+      .main::-webkit-scrollbar-track { background: transparent; }
+      .main::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: var(--r-pill); }
+      .main::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+    }
+
+    /* =============================================
+       BOTTOM NAV
+       — safe-bottom keeps buttons above the home bar
+       ============================================= */
+    .bottom-nav {
+      flex-shrink: 0;
+      display: flex;
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border);
+      /* total height = nav + home bar */
+      padding-bottom: var(--safe-bottom);
+      z-index: 20;
+    }
+
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      padding: 10px 4px;
+      cursor: pointer;
+      color: var(--text-tertiary);
+      transition: color 0.15s;
+      user-select: none;
+      min-height: var(--nav-height);
+    }
+    .nav-item svg { width: 22px; height: 22px; }
+    .nav-item span { font-size: 10px; font-weight: 500; letter-spacing: 0.2px; }
+    .nav-item.active { color: var(--accent); }
+
+    /* =============================================
+       VIEWS
+       ============================================= */
+    .view {
+      display: none;
+      padding: var(--sp-md);
+      padding-bottom: calc(var(--sp-xl) + 8px);
+    }
+    .view.active {
+      display: block;
+      animation: viewIn 0.18s ease;
+    }
+    @keyframes viewIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* =============================================
+       DESIGN SYSTEM COMPONENTS
+       ============================================= */
+
+    /* Card */
+    .card {
+      background: var(--bg-card);
+      border-radius: var(--r-lg);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .card-p { padding: var(--sp-md); }
+
+    /* Section header */
+    .section-hd {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--sp-sm);
+    }
+
+    /* Label (eyebrow) */
+    .label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+    }
+
+    /* Link-style small text */
+    .link-sm {
+      font-size: 12px;
+      color: var(--accent);
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    /* Badge pill */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: var(--r-pill);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+    .badge-run      { background: var(--accent-dim); color: var(--accent); }
+    .badge-strength { background: var(--amber-dim);  color: var(--amber); }
+    .badge-mobility { background: rgba(160,126,184,0.13); color: var(--c-mobility); }
+    .badge-tennis   { background: rgba(126,184,212,0.13); color: var(--c-tennis); }
+    .badge-boulder  { background: rgba(196,124,90,0.13);  color: var(--c-boulder); }
+    .badge-rest     { background: rgba(94,92,88,0.18);    color: var(--c-rest); }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--sp-sm);
+      padding: 13px 20px;
+      border-radius: var(--r-md);
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: transform 0.12s, background 0.15s;
+      letter-spacing: 0.1px;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary   { background: var(--accent);      color: var(--text-on-accent); }
+    .btn-secondary { background: var(--bg-elevated); color: var(--text-primary); border: 1px solid var(--border-strong); }
+    .btn-ghost     { background: transparent; color: var(--accent); }
+    .btn-full      { width: 100%; }
+    .btn:disabled  { opacity: 0.4; cursor: not-allowed; }
+
+    /* Divider */
+    .divider { height: 1px; background: var(--border); margin: var(--sp-md) 0; }
+
+    /* Stat pills */
+    .stat-row {
+      display: flex;
+      gap: var(--sp-sm);
+    }
+    .stat-pill {
+      flex: 1;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 12px var(--sp-md);
+    }
+    .stat-pill .sv {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.8px;
+      line-height: 1;
+    }
+    .stat-pill .sv sub {
+      font-size: 12px;
+      font-weight: 500;
+      vertical-align: baseline;
+      letter-spacing: 0;
+    }
+    .stat-pill .sl {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-tertiary);
+      margin-top: 3px;
+    }
+
+    /* =============================================
+       WEEK STRIP
+       ============================================= */
+    .week-strip { display: flex; gap: 3px; }
+    .wday {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      padding: 10px 2px;
+      border-radius: var(--r-md);
+    }
+    .wday.today { background: var(--bg-elevated); }
+    .wday .wd-name {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--text-tertiary);
+    }
+    .wday.today .wd-name { color: var(--accent); }
+    .wday .wd-num { font-size: 14px; font-weight: 700; }
+    .wday .wd-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+    .wday .wd-dot.run      { background: var(--c-run); }
+    .wday .wd-dot.strength { background: var(--c-strength); }
+    .wday .wd-dot.mobility { background: var(--c-mobility); }
+    .wday .wd-dot.tennis   { background: var(--c-tennis); }
+    .wday .wd-dot.boulder  { background: var(--c-boulder); }
+    .wday .wd-dot.done     { background: var(--text-tertiary); opacity: 0.4; }
+
+    /* =============================================
+       SESSION HERO CARD
+       ============================================= */
+    .session-hero {
+      background: var(--bg-card);
+      border-radius: var(--r-xl);
+      border: 1px solid var(--border);
+      padding: var(--sp-md);
+      position: relative;
+      overflow: hidden;
+    }
+    /* Decorative ambient glow */
+    .session-hero::before {
+      content: '';
+      position: absolute;
+      top: -50px; right: -50px;
+      width: 180px; height: 180px;
+      border-radius: 50%;
+      background: var(--accent-dim);
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .sh-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: var(--sp-sm);
+    }
+
+    .sh-icon {
+      width: 44px; height: 44px;
+      border-radius: var(--r-md);
+      background: var(--accent-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .sh-icon svg { width: 22px; height: 22px; color: var(--accent); }
+
+    .sh-name {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 4px;
+    }
+    .sh-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.45;
+      margin-bottom: var(--sp-md);
+    }
+    .sh-meta {
+      display: flex;
+      gap: var(--sp-lg);
+      margin-bottom: var(--sp-md);
+    }
+    .sh-meta-item .mv {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+    .sh-meta-item .ml {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-tertiary);
+    }
+    .sh-actions { display: flex; gap: var(--sp-sm); }
+
+    /* =============================================
+       READINESS CARD
+       ============================================= */
+    .readiness-card {
+      background: var(--bg-card);
+      border-radius: var(--r-lg);
+      border: 1px solid var(--border);
+      padding: var(--sp-md);
+      display: flex;
+      align-items: center;
+      gap: var(--sp-md);
+    }
+    .readiness-dial {
+      width: 54px; height: 54px;
+      border-radius: 50%;
+      border: 2.5px solid var(--border-strong);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-tertiary);
+    }
+    .readiness-dial.live { border-color: var(--accent); color: var(--accent); }
+    .readiness-info { flex: 1; }
+    .readiness-info .ri-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+    .readiness-info .ri-sub   { font-size: 12px; color: var(--text-secondary); line-height: 1.3; }
+    .connect-btn {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-strong);
+      padding: 5px 11px;
+      border-radius: var(--r-pill);
+      cursor: pointer;
+      flex-shrink: 0;
+      background: none;
+      font-family: var(--font);
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .connect-btn:active { border-color: var(--accent); color: var(--accent); }
+
+    /* =============================================
+       ACTIVITY LIST
+       ============================================= */
+    .activity-item {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-md);
+      padding: 13px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .activity-item:last-child { border-bottom: none; }
+    .act-icon {
+      width: 40px; height: 40px;
+      border-radius: var(--r-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .act-icon.run      { background: var(--accent-dim); }
+    .act-icon.strength { background: var(--amber-dim); }
+    .act-icon.mobility { background: rgba(160,126,184,0.13); }
+    .act-icon.tennis   { background: rgba(126,184,212,0.12); }
+    .act-icon.boulder  { background: rgba(196,124,90,0.12); }
+
+    /* Garmin-detected activity pill — shown in Plan view as context, not prescription */
+    .detected-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 11px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--r-pill);
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .detected-pill .dp-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+    }
+    .detected-section {
+      margin-top: var(--sp-md);
+      padding-top: var(--sp-md);
+      border-top: 1px solid var(--border);
+    }
+    .detected-pills { display: flex; flex-wrap: wrap; gap: var(--sp-sm); margin-top: var(--sp-sm); }
+    .act-info { flex: 1; }
+    .act-info .ai-name   { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+    .act-info .ai-detail { font-size: 12px; color: var(--text-secondary); }
+    .act-stat { text-align: right; flex-shrink: 0; }
+    .act-stat .as-val  { font-size: 14px; font-weight: 600; }
+    .act-stat .as-unit { font-size: 11px; color: var(--text-secondary); }
+
+    /* =============================================
+       PLAN VIEW
+       ============================================= */
+    .week-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--sp-md);
+    }
+    .week-nav .wn-label { font-size: 16px; font-weight: 600; }
+
+    .plan-day {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--sp-md);
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .plan-day:last-child { border-bottom: none; }
+    .pd-label { width: 42px; flex-shrink: 0; }
+    .pd-label .pdl-day  { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-tertiary); }
+    .pd-label .pdl-date { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .pd-label.today .pdl-day { color: var(--accent); }
+    .pd-sessions { flex: 1; display: flex; flex-direction: column; gap: var(--sp-sm); }
+
+    .plan-session-card {
+      background: var(--bg-surface);
+      border-radius: var(--r-md);
+      border: 1px solid var(--border);
+      padding: 11px var(--sp-md);
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .plan-session-card:active { background: var(--bg-elevated); }
+    .psc-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .psc-info { flex: 1; }
+    .psc-info .psc-name { font-size: 13px; font-weight: 600; }
+    .psc-info .psc-sub  { font-size: 11px; color: var(--text-secondary); margin-top: 1px; }
+    .psc-dur { font-size: 12px; color: var(--text-secondary); font-weight: 500; flex-shrink: 0; }
+    .pd-rest { font-size: 13px; color: var(--text-tertiary); font-style: italic; flex: 1; }
+
+    /* Race target card */
+    .race-card {
+      background: var(--bg-card);
+      border-radius: var(--r-lg);
+      border: 1px dashed var(--border-strong);
+      padding: var(--sp-md);
+      display: flex;
+      align-items: center;
+      gap: var(--sp-md);
+      cursor: pointer;
+      margin-bottom: var(--sp-md);
+    }
+    .race-card-icon {
+      width: 40px; height: 40px;
+      border-radius: var(--r-md);
+      background: var(--bg-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .rci-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+    .rci-sub   { font-size: 12px; color: var(--text-secondary); }
+    .chevron-r { color: var(--text-tertiary); flex-shrink: 0; }
+
+    /* =============================================
+       TRAIN VIEW — movement list
+       ============================================= */
+    .movement-list { display: flex; flex-direction: column; gap: var(--sp-sm); }
+    .movement-item {
+      background: var(--bg-card);
+      border-radius: var(--r-lg);
+      border: 1px solid var(--border);
+      padding: var(--sp-md);
+      display: flex;
+      align-items: center;
+      gap: var(--sp-md);
+      cursor: pointer;
+    }
+    .mov-thumb {
+      width: 52px; height: 52px;
+      border-radius: var(--r-md);
+      background: var(--bg-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+    .mov-info { flex: 1; }
+    .mov-info .mn  { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+    .mov-info .mrx { font-size: 12px; color: var(--text-secondary); }
+    .mov-check {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      border: 2px solid var(--border-strong);
+      flex-shrink: 0;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .mov-check.done { background: var(--accent); border-color: var(--accent); }
+
+    /* Session type tab switcher in Train view */
+    .session-tabs {
+      display: flex;
+      gap: var(--sp-sm);
+      margin-bottom: var(--sp-md);
+      background: var(--bg-surface);
+      border-radius: var(--r-lg);
+      padding: 4px;
+    }
+    .session-tab {
+      flex: 1;
+      text-align: center;
+      padding: 8px 4px;
+      border-radius: var(--r-md);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text-tertiary);
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .session-tab.active {
+      background: var(--bg-card);
+      color: var(--text-primary);
+    }
+    .session-tab.active.run-tab      { color: var(--c-run); }
+    .session-tab.active.strength-tab { color: var(--c-strength); }
+    .session-tab.active.mobility-tab { color: var(--c-mobility); }
+    .train-panel { display: none; }
+    .train-panel.active { display: block; }
+
+    /* Run structure item */
+    .run-block {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-md);
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .run-block:last-child { border-bottom: none; }
+    .rb-icon {
+      width: 40px; height: 40px;
+      border-radius: var(--r-md);
+      background: var(--accent-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+    .rb-info { flex: 1; }
+    .rb-info .rbn  { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+    .rb-info .rbsb { font-size: 12px; color: var(--text-secondary); }
+    .rb-dur { font-size: 14px; font-weight: 600; flex-shrink: 0; }
+
+    /* =============================================
+       LOG VIEW
+       ============================================= */
+    .log-type-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--sp-sm);
+      margin-bottom: var(--sp-md);
+    }
+    .lt-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      padding: 12px 4px;
+      background: var(--bg-card);
+      border-radius: var(--r-lg);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-family: var(--font);
+      transition: all 0.15s;
+    }
+    .lt-btn.sel { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+    .lt-btn .lt-icon  { font-size: 22px; }
+    .lt-btn .lt-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+
+    .form-group { margin-bottom: var(--sp-md); }
+    .form-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--text-tertiary);
+      margin-bottom: 6px;
+    }
+    .form-input {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--r-md);
+      padding: 12px var(--sp-md);
+      font-family: var(--font);
+      font-size: 15px;
+      color: var(--text-primary);
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      transition: border-color 0.15s;
+    }
+    .form-input:focus { border-color: var(--accent); }
+    .form-input::placeholder { color: var(--text-tertiary); }
+    textarea.form-input { resize: none; }
+    select.form-input option { background: var(--bg-surface); }
+
+    .effort-row {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 5px;
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+    .effort-val { color: var(--accent); font-weight: 600; }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      height: 4px;
+      cursor: pointer;
+    }
+
+    /* =============================================
+       SETTINGS VIEW
+       ============================================= */
+    .profile-head {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-md);
+      margin-bottom: var(--sp-xl);
+    }
+    .profile-avatar {
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      background: var(--accent-dim);
+      border: 2px solid var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      flex-shrink: 0;
+    }
+    .profile-name { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; }
+    .profile-sub  { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+
+    .settings-section { margin-bottom: var(--sp-xl); }
+
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .settings-row:last-child { border-bottom: none; }
+    .sr-info .sr-title { font-size: 14px; font-weight: 500; margin-bottom: 1px; }
+    .sr-info .sr-sub   { font-size: 12px; color: var(--text-secondary); }
+    .sr-val { font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; }
+
+    .garmin-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      background: var(--bg-elevated);
+      border-radius: var(--r-pill);
+      border: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+    .garmin-badge .gb-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--text-tertiary);
+    }
+    .garmin-badge.connected .gb-dot { background: var(--accent); }
+
+    .toggle { position: relative; width: 44px; height: 26px; }
+    .toggle input { display: none; }
+    .toggle-track {
+      position: absolute; inset: 0;
+      background: var(--bg-elevated);
+      border-radius: var(--r-pill);
+      border: 1px solid var(--border-strong);
+      transition: 0.2s;
+      cursor: pointer;
+    }
+    .toggle-track::before {
+      content: '';
+      position: absolute;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: var(--text-tertiary);
+      top: 2px; left: 2px;
+      transition: 0.2s;
+    }
+    .toggle input:checked + .toggle-track { background: var(--accent-dim); border-color: var(--accent); }
+    .toggle input:checked + .toggle-track::before { transform: translateX(18px); background: var(--accent); }
+
+    /* =============================================
+       iOS INSTALL BANNER
+       ============================================= */
+    .install-banner {
+      display: none;
+      align-items: center;
+      gap: var(--sp-md);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--r-lg);
+      padding: var(--sp-md);
+      margin-bottom: var(--sp-md);
+    }
+    .install-banner.show { display: flex; }
+    .ib-icon  { font-size: 26px; flex-shrink: 0; }
+    .ib-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+    .ib-sub   { font-size: 11px; color: var(--text-secondary); line-height: 1.4; }
+    .ib-close { font-size: 18px; color: var(--text-tertiary); cursor: pointer; flex-shrink: 0; padding: 4px; }
+
+    /* =============================================
+       EMPTY STATE
+       ============================================= */
+    .empty {
+      text-align: center;
+      padding: var(--sp-xl) var(--sp-md);
+      color: var(--text-secondary);
+    }
+    .empty .e-icon  { font-size: 36px; margin-bottom: var(--sp-md); opacity: 0.35; }
+    .empty .e-title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: var(--sp-sm); }
+    .empty .e-desc  { font-size: 13px; line-height: 1.5; }
+
+    /* =============================================
+       BOTTOM SHEET
+       ============================================= */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 100;
+      display: none;
+      align-items: flex-end;
+    }
+    .overlay.open { display: flex; }
+    .sheet {
+      width: 100%;
+      background: var(--bg-surface);
+      border-radius: var(--r-xl) var(--r-xl) 0 0;
+      padding: var(--sp-md);
+      /* safe bottom inside the sheet */
+      padding-bottom: calc(var(--sp-xl) + var(--safe-bottom));
+      max-height: 88dvh;
+      overflow-y: auto;
+    }
+    .sheet-handle {
+      width: 36px; height: 4px;
+      background: var(--bg-elevated);
+      border-radius: var(--r-pill);
+      margin: 0 auto var(--sp-md);
+    }
+    .sheet-title { font-size: 18px; font-weight: 700; margin-bottom: var(--sp-md); letter-spacing: -0.3px; }
+  </style>
+</head>
+
+<body>
+<div class="app">
+
+  <!-- ── HEADER ─────────────────────────────────── -->
+  <header class="app-header">
+    <div class="logo">To Be <em>Frank</em></div>
+    <div class="header-right">
+      <div class="icon-btn" aria-label="Notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── VIEWS ──────────────────────────────────── -->
+  <main class="main">
+
+    <!-- ═══════════════ TODAY ══════════════════ -->
+    <div class="view active" id="view-today">
+
+      <!-- iOS install nudge -->
+      <div class="install-banner" id="install-banner">
+        <div class="ib-icon">📲</div>
+        <div style="flex:1">
+          <div class="ib-title">Add to Home Screen</div>
+          <div class="ib-sub">Tap Share → "Add to Home Screen" for the full app experience</div>
+        </div>
+        <div class="ib-close" id="ib-close">✕</div>
+      </div>
+
+      <!-- Greeting -->
+      <div style="margin-bottom:var(--sp-md)">
+        <div class="label" id="today-date"></div>
+        <div style="font-size:26px;font-weight:700;letter-spacing:-0.5px;margin-top:3px">Morning, Frank.</div>
+      </div>
+
+      <!-- Readiness -->
+      <div class="readiness-card" style="margin-bottom:var(--sp-md)">
+        <div class="readiness-dial" id="r-dial">—</div>
+        <div class="readiness-info">
+          <div class="ri-title">Readiness</div>
+          <div class="ri-sub" id="r-sub">Connect Garmin to see Body Battery &amp; HRV</div>
+        </div>
+        <button class="connect-btn" onclick="openSheet('sheet-garmin')">Connect</button>
+      </div>
+
+      <!-- Today's session -->
+      <div style="margin-bottom:var(--sp-md)">
+        <div class="section-hd">
+          <div class="label">Today</div>
+          <div class="link-sm" onclick="openSheet('sheet-swap')">Swap</div>
+        </div>
+
+        <div class="session-hero">
+          <div class="sh-top">
+            <div class="sh-icon">
+              <!-- Running shoe / pace icon -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12,6 12,12 16,14"/>
+              </svg>
+            </div>
+            <span class="badge badge-run">Run</span>
+          </div>
+          <div class="sh-name">Tempo Intervals</div>
+          <div class="sh-desc">3 × 8 min at threshold pace with 3 min easy recovery. Build your lactate ceiling.</div>
+          <div class="sh-meta">
+            <div class="sh-meta-item">
+              <div class="mv">52 min</div>
+              <div class="ml">Duration</div>
+            </div>
+            <div class="sh-meta-item">
+              <div class="mv">~10 km</div>
+              <div class="ml">Distance</div>
+            </div>
+            <div class="sh-meta-item">
+              <div class="mv">Med–High</div>
+              <div class="ml">Effort</div>
+            </div>
+          </div>
+          <div class="sh-actions">
+            <button class="btn btn-primary" style="flex:1" onclick="showView('train')">View Session</button>
+            <button class="btn btn-secondary" onclick="openSheet('sheet-swap')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Week strip -->
+      <div style="margin-bottom:var(--sp-md)">
+        <div class="section-hd">
+          <div class="label">This Week</div>
+          <div class="link-sm" onclick="showView('plan')">Full Plan</div>
+        </div>
+        <div class="card card-p">
+          <div class="week-strip" id="week-strip"></div>
+        </div>
+      </div>
+
+      <!-- Weekly stats -->
+      <div style="margin-bottom:var(--sp-md)">
+        <div class="label" style="margin-bottom:var(--sp-sm)">Week Summary</div>
+        <div class="stat-row">
+          <div class="stat-pill">
+            <div class="sv">0<sub>km</sub></div>
+            <div class="sl">Run</div>
+          </div>
+          <div class="stat-pill">
+            <div class="sv">0</div>
+            <div class="sl">Sessions</div>
+          </div>
+          <div class="stat-pill">
+            <div class="sv">0</div>
+            <div class="sl">Load</div>
+          </div>
+          <div class="stat-pill">
+            <div class="sv">0<sub>h</sub></div>
+            <div class="sl">Active</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent activity -->
+      <div>
+        <div class="label" style="margin-bottom:var(--sp-sm)">Recent Activity</div>
+        <div class="card card-p">
+          <div class="activity-item">
+            <div class="act-icon run">🏃</div>
+            <div class="act-info">
+              <div class="ai-name">Easy Run</div>
+              <div class="ai-detail">Yesterday · 6.2 km · 35:10</div>
+            </div>
+            <div class="act-stat">
+              <div class="as-val">5:40</div>
+              <div class="as-unit">/km</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="act-icon boulder">🧗</div>
+            <div class="act-info">
+              <div class="ai-name">Bouldering</div>
+              <div class="ai-detail">2 days ago · 90 min</div>
+            </div>
+            <div class="act-stat">
+              <div class="as-val">7/10</div>
+              <div class="as-unit">effort</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="act-icon tennis">🎾</div>
+            <div class="act-info">
+              <div class="ai-name">Tennis</div>
+              <div class="ai-detail">3 days ago · 75 min</div>
+            </div>
+            <div class="act-stat">
+              <div class="as-val">6/10</div>
+              <div class="as-unit">effort</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /view-today -->
+
+    <!-- ═══════════════ PLAN ════════════════════ -->
+    <div class="view" id="view-plan">
+
+      <!-- Race target -->
+      <div class="race-card" onclick="openSheet('sheet-race')">
+        <div class="race-card-icon">🏁</div>
+        <div style="flex:1">
+          <div class="rci-title">Set a Race Target</div>
+          <div class="rci-sub">Add a goal event and Frank builds toward it</div>
+        </div>
+        <svg class="chevron-r" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9,18 15,12 9,6"/></svg>
+      </div>
+
+      <!-- Week navigation -->
+      <div class="week-nav">
+        <button class="icon-btn" id="prev-week">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15,18 9,12 15,6"/></svg>
+        </button>
+        <div class="wn-label" id="week-label">This Week</div>
+        <button class="icon-btn" id="next-week">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9,18 15,12 9,6"/></svg>
+        </button>
+      </div>
+
+      <!-- AI plan CTA -->
+      <div class="card card-p" style="margin-bottom:var(--sp-md);text-align:center;border-style:dashed;border-color:var(--border-strong)">
+        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:var(--sp-sm)">AI plan generation available once Garmin is connected</div>
+        <button class="btn btn-secondary" disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 3v1m0 16v1M4.22 4.22l.7.7m12.16 12.16.7.7M3 12h1m16 0h1M4.92 19.08l.7-.7M18.38 5.62l.7-.7"/><circle cx="12" cy="12" r="4"/></svg>
+          Generate Week
+        </button>
+      </div>
+
+      <!-- Plan day rows -->
+      <div class="card card-p" id="plan-days">
+        <!-- Garmin detected activities shown as context at the bottom -->
+        <div class="detected-section">
+          <div class="label">Detected This Week via Garmin</div>
+          <div style="font-size:12px;color:var(--text-secondary);margin-top:3px;margin-bottom:var(--sp-sm)">
+            These aren't planned sessions — Frank adjusts intensity around them automatically.
+          </div>
+          <div class="detected-pills">
+            <div class="detected-pill">
+              <div class="dp-dot" style="background:var(--c-tennis)"></div>
+              Tennis · Thu · 75 min
+            </div>
+            <div class="detected-pill">
+              <div class="dp-dot" style="background:var(--c-boulder)"></div>
+              Bouldering · Sat · 90 min
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /view-plan -->
+
+    <!-- ═══════════════ TRAIN ═══════════════════ -->
+    <div class="view" id="view-train">
+
+      <!-- Session type tabs -->
+      <div class="session-tabs">
+        <div class="session-tab run-tab active" onclick="switchTrainTab('run', this)">Run</div>
+        <div class="session-tab strength-tab" onclick="switchTrainTab('strength', this)">Strength</div>
+        <div class="session-tab mobility-tab" onclick="switchTrainTab('mobility', this)">Mobility</div>
+      </div>
+
+      <!-- ── RUN PANEL ── -->
+      <div class="train-panel active" id="panel-run">
+        <div style="margin-bottom:var(--sp-md)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-sm)">
+            <span class="badge badge-run">Threshold</span>
+            <span style="font-size:12px;color:var(--text-secondary)">52 min · ~10 km</span>
+          </div>
+          <div style="font-size:22px;font-weight:700;letter-spacing:-0.4px;margin-bottom:5px">Tempo Intervals</div>
+          <div style="font-size:13px;color:var(--text-secondary);line-height:1.5">
+            Warm-up 10 min → 3 × 8 min at threshold → 3 min recovery each → Cool-down 10 min
+          </div>
+        </div>
+        <div class="label" style="margin-bottom:var(--sp-sm)">Session Structure</div>
+        <div class="card card-p" style="margin-bottom:var(--sp-md)">
+          <div class="run-block">
+            <div class="rb-icon">🏃</div>
+            <div class="rb-info">
+              <div class="rbn">Warm-up</div>
+              <div class="rbsb">Easy pace · Zone 2 · relaxed breathing</div>
+            </div>
+            <div class="rb-dur">10 min</div>
+          </div>
+          <div class="run-block">
+            <div class="rb-icon">×3</div>
+            <div class="rb-info">
+              <div class="rbn">Threshold Interval</div>
+              <div class="rbsb">Zone 4 · comfortably hard · nose breathing challenged</div>
+            </div>
+            <div class="rb-dur">8 min</div>
+          </div>
+          <div class="run-block">
+            <div class="rb-icon" style="font-size:11px">REC</div>
+            <div class="rb-info">
+              <div class="rbn">Recovery Jog</div>
+              <div class="rbsb">Easy between each interval · HR drops to Zone 2</div>
+            </div>
+            <div class="rb-dur">3 min</div>
+          </div>
+          <div class="run-block">
+            <div class="rb-icon">🏃</div>
+            <div class="rb-info">
+              <div class="rbn">Cool-down</div>
+              <div class="rbsb">Easy pace · let heart rate fully settle</div>
+            </div>
+            <div class="rb-dur">10 min</div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full" style="margin-bottom:var(--sp-sm)" onclick="requestWakeLock()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+          Push to Garmin &amp; Start
+        </button>
+        <button class="btn btn-secondary btn-full" onclick="showView('log')">Log Manually Instead</button>
+      </div>
+
+      <!-- ── STRENGTH PANEL ── -->
+      <div class="train-panel" id="panel-strength">
+        <div style="margin-bottom:var(--sp-md)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-sm)">
+            <span class="badge badge-strength">Runner Strength A</span>
+            <span style="font-size:12px;color:var(--text-secondary)">50 min · Beginner</span>
+          </div>
+          <div style="font-size:22px;font-weight:700;letter-spacing:-0.4px;margin-bottom:5px">Posterior Chain + Core</div>
+          <div style="font-size:13px;color:var(--text-secondary);line-height:1.5">
+            Runner-focused: glutes, hamstrings, single-leg stability, anti-rotation core. Complements bouldering — no competing grip/shoulder load.
+          </div>
+        </div>
+        <div class="label" style="margin-bottom:var(--sp-sm)">Movements</div>
+        <div class="movement-list" style="margin-bottom:var(--sp-md)">
+          <div class="movement-item" onclick="toggleMovement(this)">
+            <div class="mov-thumb">🦵</div>
+            <div class="mov-info">
+              <div class="mn">Goblet Squat</div>
+              <div class="mrx">3 × 12 reps · moderate load · full depth</div>
+            </div>
+            <div class="mov-check"></div>
+          </div>
+          <div class="movement-item" onclick="toggleMovement(this)">
+            <div class="mov-thumb">🍑</div>
+            <div class="mov-info">
+              <div class="mn">Romanian Deadlift</div>
+              <div class="mrx">3 × 10 reps · slow 3-sec eccentric</div>
+            </div>
+            <div class="mov-check"></div>
+          </div>
+          <div class="movement-item" onclick="toggleMovement(this)">
+            <div class="mov-thumb">🧘</div>
+            <div class="mov-info">
+              <div class="mn">Copenhagen Plank</div>
+              <div class="mrx">3 × 20 sec each side · adductor + core</div>
+            </div>
+            <div class="mov-check"></div>
+          </div>
+          <div class="movement-item" onclick="toggleMovement(this)">
+            <div class="mov-thumb">🦶</div>
+            <div class="mov-info">
+              <div class="mn">Single-leg Calf Raise</div>
+              <div class="mrx">3 × 15 reps · slow and controlled · off a step</div>
+            </div>
+            <div class="mov-check"></div>
+          </div>
+          <div class="movement-item" onclick="toggleMovement(this)">
+            <div class="mov-thumb">⚡</div>
+            <div class="mov-info">
+              <div class="mn">Dead Bug</div>
+              <div class="mrx">3 × 10 each side · lower back stays flat</div>
+            </div>
+            <div class="mov-check"></div>
+          </div>
+          <div class="movement-item" onclick="toggleMovement(this)">
+            <div class="mov-thumb">🏋️</div>
+            <div class="mov-info">
+              <div class="mn">Bulgarian Split Squat</div>
+              <div class="mrx">3 × 8 each leg · bodyweight to start</div>
+            </div>
+            <div class="mov-check"></div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full" style="margin-bottom:var(--sp-sm)" onclick="requestWakeLock()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+          Start Session
+        </button>
+        <button class="btn btn-secondary btn-full" onclick="showView('log')">Log Manually Instead</button>
+      </div>
+
+      <!-- ── MOBILITY PANEL ── -->
+      <div class="train-panel" id="panel-mobility">
+        <div style="margin-bottom:var(--sp-md)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-sm)">
+            <span class="badge badge-mobility">Mobility</span>
+            <span style="font-size:12px;color:var(--text-secondary)">25 min · daily friendly</span>
+          </div>
+          <div style="font-size:22px;font-weight:700;letter-spacing:-0.4px;margin-bottom:5px">Hip, IT Band &amp; Thoracic</div>
+          <div style="font-size:13px;color:var(--text-secondary);line-height:1.5">
+            Runner's essential maintenance. Targets the areas most restricted by high mileage, bouldering posture, and desk time.
+          </div>
+        </div>
+        <div class="label" style="margin-bottom:var(--sp-sm)">Movements — hold each position</div>
+        <div class="movement-list" style="margin-bottom:var(--sp-md)">
+          <div class="movement-item" onclick="toggleMovement(this)">
+            <div class="mov-thumb">🧎</div>
+            <div class="mov-info">
+              <div class="mn">Hip Flexor Lunge Stretch</div>
+              <div class="mrx">60 sec each side · posterior tilt to feel the pull</div>
+            </div>
+            <div class="mov-check"></div>
+          </div>
+          <div class="movement-item" onclick="toggleMovement(this)">
+            <div class="mov-thumb">🦵</div>
+            <div class="mov-info">
+              <div class="mn">IT Band / Pigeon Pose</div>
+              <div class="mrx">90 sec each side · breathe into the hip</div>
+            </div>
+            <div class="mov-check"></div>
+          </div>
+          <div class="movement-item" onclick="toggleMovement(this)">
+            <div class="mov-thumb">🦴</div>
+            <div class="mov-info">
+              <div class="mn">90/90 Hip Rotation</div>
+              <div class="mrx">60 sec each side · internal + external rotation</div>
+            </div>
+            <div class="mov-check"></div>
+          </div>
+          <div class="movement-item" onclick="toggleMovement(this)">
+            <div class="mov-thumb">🌀</div>
+            <div class="mov-info">
+              <div class="mn">Thoracic Rotation (Thread the Needle)</div>
+              <div class="mrx">10 slow reps each side · open the upper back</div>
+            </div>
+            <div class="mov-check"></div>
+          </div>
+          <div class="movement-item" onclick="toggleMovement(this)">
+            <div class="mov-thumb">🦶</div>
+            <div class="mov-info">
+              <div class="mn">Calf &amp; Achilles Stretch</div>
+              <div class="mrx">60 sec each · straight leg then bent knee</div>
+            </div>
+            <div class="mov-check"></div>
+          </div>
+          <div class="movement-item" onclick="toggleMovement(this)">
+            <div class="mov-thumb">🤸</div>
+            <div class="mov-info">
+              <div class="mn">Standing Hamstring Sweep</div>
+              <div class="mrx">10 slow reps each leg · keep spine neutral</div>
+            </div>
+            <div class="mov-check"></div>
+          </div>
+          <div class="movement-item" onclick="toggleMovement(this)">
+            <div class="mov-thumb">💆</div>
+            <div class="mov-info">
+              <div class="mn">Child's Pose with Lat Reach</div>
+              <div class="mrx">60 sec · decompress the spine · breathe</div>
+            </div>
+            <div class="mov-check"></div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full" style="margin-bottom:var(--sp-sm)" onclick="requestWakeLock()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+          Start Session
+        </button>
+      </div>
+
+    </div><!-- /view-train -->
+
+    <!-- ═══════════════ LOG ══════════════════════ -->
+    <div class="view" id="view-log">
+
+      <div style="font-size:22px;font-weight:700;letter-spacing:-0.4px;margin-bottom:var(--sp-md)">Log Activity</div>
+
+      <div class="label" style="margin-bottom:var(--sp-sm)">Activity Type</div>
+      <div class="log-type-grid">
+        <div class="lt-btn sel" onclick="selectType(this)">
+          <div class="lt-icon">🏃</div>
+          <div class="lt-label">Run</div>
+        </div>
+        <div class="lt-btn" onclick="selectType(this)">
+          <div class="lt-icon">🎾</div>
+          <div class="lt-label">Tennis</div>
+        </div>
+        <div class="lt-btn" onclick="selectType(this)">
+          <div class="lt-icon">🧗</div>
+          <div class="lt-label">Boulder</div>
+        </div>
+        <div class="lt-btn" onclick="selectType(this)">
+          <div class="lt-icon">🏋️</div>
+          <div class="lt-label">Strength</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Duration (minutes)</label>
+        <input type="number" class="form-input" placeholder="e.g. 45" inputmode="numeric" id="log-duration">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Perceived Effort</label>
+        <input type="range" min="1" max="10" value="5" id="effort-slider">
+        <div class="effort-row">
+          <span>Easy</span>
+          <span class="effort-val" id="effort-val">5 / 10</span>
+          <span>Max</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Notes (optional)</label>
+        <textarea class="form-input" placeholder="How did it feel? Anything notable?" rows="3" id="log-notes"></textarea>
+      </div>
+
+      <button class="btn btn-primary btn-full" style="margin-bottom:var(--sp-xl)" onclick="saveLog()">Save Activity</button>
+
+      <div class="label" style="margin-bottom:var(--sp-sm)">Recent Manual Logs</div>
+      <div class="card card-p" id="log-list">
+        <div class="empty">
+          <div class="e-icon">📋</div>
+          <div class="e-title">No manual logs yet</div>
+          <div class="e-desc">Garmin activities will appear automatically once connected</div>
+        </div>
+      </div>
+
+    </div><!-- /view-log -->
+
+    <!-- ═══════════════ PROFILE ══════════════════ -->
+    <div class="view" id="view-profile">
+
+      <div class="profile-head">
+        <div class="profile-avatar">🧑</div>
+        <div>
+          <div class="profile-name">Frank</div>
+          <div class="profile-sub">Runner · Boulderer · Tennis · Strength</div>
+        </div>
+      </div>
+
+      <!-- Integrations -->
+      <div class="settings-section">
+        <div class="label" style="margin-bottom:var(--sp-sm)">Integrations</div>
+        <div class="card card-p">
+          <div class="settings-row" onclick="openSheet('sheet-garmin')">
+            <div class="sr-info">
+              <div class="sr-title">Garmin Connect</div>
+              <div class="sr-sub">Sync activities, Body Battery &amp; HRV</div>
+            </div>
+            <div class="garmin-badge" id="garmin-badge">
+              <div class="gb-dot"></div>
+              Not connected
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Training Profile -->
+      <div class="settings-section">
+        <div class="label" style="margin-bottom:var(--sp-sm)">Training Profile</div>
+        <div class="card card-p">
+          <div class="settings-row">
+            <div class="sr-info"><div class="sr-title">Primary Sport</div></div>
+            <div class="sr-val">Running ›</div>
+          </div>
+          <div class="settings-row">
+            <div class="sr-info"><div class="sr-title">Strength Level</div></div>
+            <div class="sr-val">Beginner ›</div>
+          </div>
+          <div class="settings-row">
+            <div class="sr-info"><div class="sr-title">Weekly Run Target</div></div>
+            <div class="sr-val">— ›</div>
+          </div>
+          <div class="settings-row" style="border-bottom:none">
+            <div class="sr-info"><div class="sr-title">Race Target</div></div>
+            <div class="sr-val link-sm" onclick="openSheet('sheet-race')">Add ›</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preferences -->
+      <div class="settings-section">
+        <div class="label" style="margin-bottom:var(--sp-sm)">Preferences</div>
+        <div class="card card-p">
+          <div class="settings-row">
+            <div class="sr-info"><div class="sr-title">Distance Units</div></div>
+            <div class="sr-val">km ›</div>
+          </div>
+          <div class="settings-row">
+            <div class="sr-info"><div class="sr-title">Pace Format</div></div>
+            <div class="sr-val">min/km ›</div>
+          </div>
+          <div class="settings-row" style="border-bottom:none">
+            <div class="sr-info">
+              <div class="sr-title">Dark Mode</div>
+              <div class="sr-sub">Always on for now</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" checked disabled>
+              <div class="toggle-track"></div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align:center;padding:var(--sp-xl) 0;font-size:12px;color:var(--text-tertiary)">
+        To Be Frank · v0.1.0
+      </div>
+
+    </div><!-- /view-profile -->
+
+  </main><!-- /main -->
+
+  <!-- ── BOTTOM NAV ──────────────────────────────── -->
+  <nav class="bottom-nav">
+    <div class="nav-item active" data-view="today" onclick="showView('today')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9,22 9,12 15,12 15,22"/>
+      </svg>
+      <span>Today</span>
+    </div>
+    <div class="nav-item" data-view="plan" onclick="showView('plan')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      <span>Plan</span>
+    </div>
+    <div class="nav-item" data-view="train" onclick="showView('train')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="5,3 19,12 5,21 5,3"/>
+      </svg>
+      <span>Train</span>
+    </div>
+    <div class="nav-item" data-view="log" onclick="showView('log')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      <span>Log</span>
+    </div>
+    <div class="nav-item" data-view="profile" onclick="showView('profile')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+      <span>Profile</span>
+    </div>
+  </nav>
+
+</div><!-- /app -->
+
+<!-- ══════════════ BOTTOM SHEETS ══════════════════ -->
+
+<!-- Race Target -->
+<div class="overlay" id="sheet-race" onclick="closeSheet('sheet-race')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Set Race Target 🏁</div>
+    <div class="form-group">
+      <label class="form-label">Race Distance</label>
+      <select class="form-input">
+        <option value="">Select distance…</option>
+        <option>5K</option>
+        <option>10K</option>
+        <option>Half Marathon</option>
+        <option>Marathon</option>
+        <option>Ultra</option>
+        <option>Trail Race</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Race Date</label>
+      <input type="date" class="form-input" id="race-date">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Goal (optional)</label>
+      <input type="text" class="form-input" placeholder="e.g. Sub 1:45, just finish, top 10…">
+    </div>
+    <button class="btn btn-primary btn-full">Set Target &amp; Build Plan</button>
+  </div>
+</div>
+
+<!-- Garmin Connect -->
+<div class="overlay" id="sheet-garmin" onclick="closeSheet('sheet-garmin')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Garmin Connect</div>
+    <div style="font-size:14px;color:var(--text-secondary);line-height:1.6;margin-bottom:var(--sp-md)">
+      Connecting Garmin pulls your runs, Body Battery, HRV status, and training load — giving Frank the full picture to plan around.
+    </div>
+    <div class="card card-p" style="margin-bottom:var(--sp-md)">
+      <div class="activity-item">
+        <div class="act-icon run">📊</div>
+        <div class="act-info">
+          <div class="ai-name">Activities &amp; Routes</div>
+          <div class="ai-detail">Runs, heart rate, pace, distance</div>
+        </div>
+      </div>
+      <div class="activity-item">
+        <div class="act-icon run">🔋</div>
+        <div class="act-info">
+          <div class="ai-name">Body Battery</div>
+          <div class="ai-detail">Daily readiness score</div>
+        </div>
+      </div>
+      <div class="activity-item" style="border-bottom:none">
+        <div class="act-icon run">💤</div>
+        <div class="act-info">
+          <div class="ai-name">HRV &amp; Sleep</div>
+          <div class="ai-detail">Recovery quality signals</div>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-full" style="margin-bottom:var(--sp-sm)">Connect via Garmin OAuth</button>
+    <div style="font-size:11px;color:var(--text-tertiary);text-align:center">Requires a Supabase backend — coming in Phase 2</div>
+  </div>
+</div>
+
+<!-- Swap Session -->
+<div class="overlay" id="sheet-swap" onclick="closeSheet('sheet-swap')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Session Options</div>
+    <div class="settings-row" onclick="closeSheet('sheet-swap')">
+      <div class="sr-info">
+        <div class="sr-title">Swap Session</div>
+        <div class="sr-sub">Replace with a different workout type</div>
+      </div>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="color:var(--text-tertiary)"><polyline points="9,18 15,12 9,6"/></svg>
+    </div>
+    <div class="settings-row" onclick="closeSheet('sheet-swap')">
+      <div class="sr-info">
+        <div class="sr-title">Move to Another Day</div>
+        <div class="sr-sub">Reschedule without losing the session</div>
+      </div>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="color:var(--text-tertiary)"><polyline points="9,18 15,12 9,6"/></svg>
+    </div>
+    <div class="settings-row" style="border-bottom:none" onclick="closeSheet('sheet-swap')">
+      <div class="sr-info">
+        <div class="sr-title" style="color:#c45c5c">Skip Today</div>
+        <div class="sr-sub">Mark as skipped, plan adjusts</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ─── VIEW MANAGEMENT ────────────────────────────
+  function showView(id) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('view-' + id).classList.add('active');
+    const nav = document.querySelector(`.nav-item[data-view="${id}"]`);
+    if (nav) nav.classList.add('active');
+  }
+
+  // ─── SHEET MANAGEMENT ───────────────────────────
+  function openSheet(id) {
+    document.getElementById(id).classList.add('open');
+  }
+  function closeSheet(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+
+  // ─── DATE ───────────────────────────────────────
+  function initDate() {
+    const now = new Date();
+    const days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    document.getElementById('today-date').textContent =
+      `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
+
+    // Pre-fill race date min to today
+    const rd = document.getElementById('race-date');
+    if (rd) rd.min = now.toISOString().split('T')[0];
+  }
+
+  // ─── WEEK STRIP ─────────────────────────────────
+  function initWeekStrip() {
+    const strip = document.getElementById('week-strip');
+    const labels = ['M','T','W','T','F','S','S'];
+    const now = new Date();
+    const dow = now.getDay();
+    const mondayOff = dow === 0 ? -6 : 1 - dow;
+
+    // Planned session types — will be replaced by real plan data later
+    const actTypes = ['run','strength','run','mobility','run','strength',null];
+
+    labels.forEach((lbl, i) => {
+      const d = new Date(now);
+      d.setDate(now.getDate() + mondayOff + i);
+      const isToday = d.toDateString() === now.toDateString();
+      const isPast  = d < now && !isToday;
+      const act = actTypes[i];
+
+      const el = document.createElement('div');
+      el.className = 'wday' + (isToday ? ' today' : '');
+
+      const dotClass = act ? (isPast ? 'done' : act) : '';
+      el.innerHTML = `
+        <div class="wd-name">${lbl}</div>
+        <div class="wd-num">${d.getDate()}</div>
+        <div class="wd-dot ${dotClass}"></div>
+      `;
+      strip.appendChild(el);
+    });
+  }
+
+  // ─── PLAN DAYS ──────────────────────────────────
+  function initPlanDays() {
+    const container = document.getElementById('plan-days');
+    const now = new Date();
+    const dow = now.getDay();
+    const mondayOff = dow === 0 ? -6 : 1 - dow;
+    const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+    const typeColor = {
+      run: 'var(--c-run)', strength: 'var(--c-strength)',
+      mobility: 'var(--c-mobility)'
+    };
+
+    // Plan = only prescribed training: runs, strength, mobility.
+    // Tennis / bouldering appear via Garmin detection below and shift this plan's intensity.
+    const plan = [
+      { sessions: [{ name:'Easy Run', sub:'45 min · Zone 2 · conversational', type:'run', dur:'45m' }] },
+      { sessions: [{ name:'Runner Strength A', sub:'Posterior chain · hips · core', type:'strength', dur:'50m' }] },
+      { sessions: [{ name:'Tempo Intervals', sub:'3 × 8 min threshold pace', type:'run', dur:'52m' }] },
+      { sessions: [{ name:'Mobility & Recovery', sub:'Hip flexors · IT band · thoracic', type:'mobility', dur:'25m' }] },
+      { sessions: [{ name:'Long Run', sub:'Easy pace · build to 90 min', type:'run', dur:'80m' }] },
+      { sessions: [{ name:'Runner Strength B', sub:'Single-leg · power · injury prevention', type:'strength', dur:'45m' }] },
+      { sessions: [] }
+    ];
+
+    dayNames.forEach((name, i) => {
+      const d = new Date(now);
+      d.setDate(now.getDate() + mondayOff + i);
+      const isToday = d.toDateString() === now.toDateString();
+      const data = plan[i];
+      const row = document.createElement('div');
+
+      if (!data.sessions.length) {
+        row.className = 'plan-day';
+        row.innerHTML = `
+          <div class="pd-label${isToday ? ' today' : ''}">
+            <div class="pdl-day">${name}</div>
+            <div class="pdl-date">${d.getDate()}</div>
+          </div>
+          <div class="pd-rest">Rest</div>
+        `;
+      } else {
+        row.className = 'plan-day';
+        const sessHTML = data.sessions.map(s => `
+          <div class="plan-session-card" onclick="showView('train')">
+            <div class="psc-dot" style="background:${typeColor[s.type] || 'var(--text-tertiary)'}"></div>
+            <div class="psc-info">
+              <div class="psc-name">${s.name}</div>
+              <div class="psc-sub">${s.sub}</div>
+            </div>
+            <div class="psc-dur">${s.dur}</div>
+          </div>
+        `).join('');
+        row.innerHTML = `
+          <div class="pd-label${isToday ? ' today' : ''}">
+            <div class="pdl-day">${name}</div>
+            <div class="pdl-date">${d.getDate()}</div>
+          </div>
+          <div class="pd-sessions">${sessHTML}</div>
+        `;
+      }
+      container.appendChild(row);
+    });
+  }
+
+  // ─── LOG ────────────────────────────────────────
+  function selectType(el) {
+    document.querySelectorAll('.lt-btn').forEach(b => b.classList.remove('sel'));
+    el.classList.add('sel');
+  }
+
+  function saveLog() {
+    const dur   = document.getElementById('log-duration').value;
+    const eff   = document.getElementById('effort-slider').value;
+    const notes = document.getElementById('log-notes').value;
+    const type  = document.querySelector('.lt-btn.sel .lt-icon')?.textContent || '🏃';
+
+    if (!dur) { alert('Please enter a duration.'); return; }
+
+    const data = loadData();
+    data.logs.unshift({ type, dur: parseInt(dur), effort: parseInt(eff), notes, date: new Date().toISOString() });
+    saveData(data);
+    renderLogs();
+
+    document.getElementById('log-duration').value = '';
+    document.getElementById('log-notes').value = '';
+    document.getElementById('effort-slider').value = 5;
+    document.getElementById('effort-val').textContent = '5 / 10';
+  }
+
+  function renderLogs() {
+    const list = document.getElementById('log-list');
+    const data = loadData();
+    if (!data.logs.length) {
+      list.innerHTML = `<div class="empty"><div class="e-icon">📋</div><div class="e-title">No manual logs yet</div><div class="e-desc">Garmin activities will appear automatically once connected</div></div>`;
+      return;
+    }
+    list.innerHTML = data.logs.slice(0, 10).map(l => {
+      const d = new Date(l.date);
+      const ago = formatAgo(d);
+      return `<div class="activity-item">
+        <div class="act-icon run">${l.type}</div>
+        <div class="act-info">
+          <div class="ai-name">Manual Log</div>
+          <div class="ai-detail">${ago} · ${l.dur} min</div>
+        </div>
+        <div class="act-stat">
+          <div class="as-val">${l.effort}/10</div>
+          <div class="as-unit">effort</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function formatAgo(d) {
+    const diff = Math.floor((Date.now() - d) / 60000);
+    if (diff < 60)  return `${diff}m ago`;
+    if (diff < 1440) return `${Math.floor(diff/60)}h ago`;
+    return `${Math.floor(diff/1440)}d ago`;
+  }
+
+  // ─── TRAIN TAB SWITCHER ─────────────────────────
+  function switchTrainTab(type, el) {
+    document.querySelectorAll('.session-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.train-panel').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('panel-' + type).classList.add('active');
+  }
+
+  // ─── MOVEMENT CHECK ─────────────────────────────
+  function toggleMovement(el) {
+    el.querySelector('.mov-check').classList.toggle('done');
+  }
+
+  // ─── DATA LAYER ─────────────────────────────────
+  const DATA_KEY = 'tbf-v1';
+
+  function loadData() {
+    try { return JSON.parse(localStorage.getItem(DATA_KEY)) || defaultData(); }
+    catch { return defaultData(); }
+  }
+
+  function saveData(d) {
+    try { localStorage.setItem(DATA_KEY, JSON.stringify(d)); }
+    catch (e) { console.warn('Storage full:', e); }
+  }
+
+  function defaultData() {
+    return { logs: [], plan: {}, raceTarget: null, settings: { units: 'km' } };
+  }
+
+  // ─── EFFORT SLIDER ──────────────────────────────
+  function initEffort() {
+    const s = document.getElementById('effort-slider');
+    const v = document.getElementById('effort-val');
+    s.addEventListener('input', () => { v.textContent = `${s.value} / 10`; });
+  }
+
+  // ─── iOS INSTALL PROMPT ─────────────────────────
+  function initInstallPrompt() {
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isStandalone = window.navigator.standalone === true;
+    const dismissed = localStorage.getItem('tbf-install-dismissed');
+    if (isIOS && !isStandalone && !dismissed) {
+      document.getElementById('install-banner').classList.add('show');
+    }
+    document.getElementById('ib-close').addEventListener('click', () => {
+      document.getElementById('install-banner').classList.remove('show');
+      localStorage.setItem('tbf-install-dismissed', '1');
+    });
+  }
+
+  // ─── SCREEN WAKE LOCK (iOS 16.4+) ───────────────
+  // Called when a session is started to keep screen on during workout
+  let wakeLock = null;
+  async function requestWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    try {
+      wakeLock = await navigator.wakeLock.request('screen');
+    } catch (e) { /* non-fatal — screen may still dim */ }
+  }
+
+  async function releaseWakeLock() {
+    if (wakeLock) { await wakeLock.release(); wakeLock = null; }
+  }
+
+  // Re-acquire if user backgrounds and returns mid-workout
+  document.addEventListener('visibilitychange', async () => {
+    if (wakeLock && document.visibilityState === 'visible') {
+      await requestWakeLock();
+    }
+  });
+
+  // ─── AUDIO CONTEXT UNLOCK (iOS) ─────────────────
+  // iOS blocks audio until a user gesture — unlock on first touch
+  let audioCtx = null;
+  function unlockAudio() {
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const buf = audioCtx.createBuffer(1, 1, 22050);
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    src.connect(audioCtx.destination);
+    src.start(0);
+  }
+  document.addEventListener('touchstart', unlockAudio, { once: true });
+
+  // ─── SERVICE WORKER ─────────────────────────────
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    });
+  }
+
+  // ─── INIT ───────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    initDate();
+    initWeekStrip();
+    initPlanDays();
+    initEffort();
+    initInstallPrompt();
+    renderLogs();
+  });
+</script>
+
+</body>
+</html>
