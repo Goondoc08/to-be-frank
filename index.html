@@ -865,6 +865,46 @@
     }
     .garmin-badge.connected .gb-dot { background: var(--accent); }
 
+    /* Info / help button */
+    .info-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      border: 1.5px solid var(--text-tertiary);
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      flex-shrink: 0;
+      vertical-align: middle;
+      margin-left: 5px;
+      transition: border-color 0.15s, color 0.15s;
+      user-select: none;
+    }
+    .info-btn:active { border-color: var(--accent); color: var(--accent); }
+
+    /* Tooltip bubble */
+    .tip-bubble {
+      position: fixed;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--r-lg);
+      padding: 12px 14px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+      max-width: 270px;
+      z-index: 300;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+      animation: tipIn 0.12s ease;
+    }
+    @keyframes tipIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
     /* Focus chip grid */
     .focus-grid {
       display: grid;
@@ -1055,7 +1095,10 @@
       <div class="readiness-card" style="margin-bottom:var(--sp-md)">
         <div class="readiness-dial" id="r-dial">—</div>
         <div class="readiness-info">
-          <div class="ri-title">Readiness</div>
+          <div style="display:flex;align-items:center">
+            <div class="ri-title">Readiness</div>
+            <span class="info-btn" onclick="showTip(this,'Combines Garmin Body Battery and overnight HRV. Low scores shift today\'s session toward recovery or mobility. High scores unlock harder efforts.')">?</span>
+          </div>
           <div class="ri-sub" id="r-sub">Connect Garmin to see Body Battery &amp; HRV</div>
         </div>
         <button class="connect-btn" onclick="openSheet('sheet-garmin')">Connect</button>
@@ -1131,7 +1174,7 @@
           </div>
           <div class="stat-pill">
             <div class="sv">0</div>
-            <div class="sl">Load</div>
+            <div class="sl" style="display:flex;align-items:center;gap:3px">Load <span class="info-btn" style="margin-left:0" onclick="showTip(this,'Training load estimates total stress across all activities this week — duration, intensity, and type combined. Tracks week-over-week to avoid overreaching.')">?</span></div>
           </div>
           <div class="stat-pill">
             <div class="sv">0<sub>h</sub></div>
@@ -1190,7 +1233,7 @@
         <div class="race-card-icon">🏁</div>
         <div style="flex:1">
           <div class="rci-title">Set a Race Target</div>
-          <div class="rci-sub">Add a goal event and Frank builds toward it</div>
+          <div class="rci-sub">Add a goal event and the plan builds toward it</div>
         </div>
         <svg class="chevron-r" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9,18 15,12 9,6"/></svg>
       </div>
@@ -1208,7 +1251,10 @@
 
       <!-- AI plan CTA -->
       <div class="card card-p" style="margin-bottom:var(--sp-md);text-align:center;border-style:dashed;border-color:var(--border-strong)">
-        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:var(--sp-sm)">AI plan generation available once Garmin is connected</div>
+        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:var(--sp-sm);display:flex;align-items:center;justify-content:center;gap:6px">
+          Available once Garmin is connected
+          <span class="info-btn" style="margin-left:0" onclick="showTip(this,'Uses your Garmin activity history, readiness, current focus, race target, and detected activities to generate a balanced 7-day plan of runs, strength, and mobility.')">?</span>
+        </div>
         <button class="btn btn-secondary" disabled>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 3v1m0 16v1M4.22 4.22l.7.7m12.16 12.16.7.7M3 12h1m16 0h1M4.92 19.08l.7-.7M18.38 5.62l.7-.7"/><circle cx="12" cy="12" r="4"/></svg>
           Generate Week
@@ -1219,9 +1265,9 @@
       <div class="card card-p" id="plan-days">
         <!-- Garmin detected activities shown as context at the bottom -->
         <div class="detected-section">
-          <div class="label">Detected This Week via Garmin</div>
-          <div style="font-size:12px;color:var(--text-secondary);margin-top:3px;margin-bottom:var(--sp-sm)">
-            These aren't planned sessions — Frank adjusts intensity around them automatically.
+          <div style="display:flex;align-items:center;margin-bottom:var(--sp-sm)">
+            <div class="label">Detected This Week via Garmin</div>
+            <span class="info-btn" onclick="showTip(this,'Unplanned activities pulled automatically from Garmin. These aren\'t prescribed — they\'re factored into how the next session\'s intensity is set. A hard bouldering day before a strength session will soften the load.')">?</span>
           </div>
           <div class="detected-pills">
             <div class="detected-pill">
@@ -1553,8 +1599,10 @@
 
       <!-- Current Focus -->
       <div class="settings-section">
-        <div class="label" style="margin-bottom:3px">Current Focus</div>
-        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:var(--sp-sm)">Frank tailors session emphasis around this</div>
+        <div style="display:flex;align-items:center;margin-bottom:var(--sp-sm)">
+          <div class="label">Current Focus</div>
+          <span class="info-btn" onclick="showTip(this,'Shifts the weekly session weighting. A running focus loads more intervals and tempo work. A strength focus increases lifting volume. Injury Prevention swaps high-impact sessions for mobility and low-intensity runs.')">?</span>
+        </div>
         <div class="focus-grid" id="focus-grid">
           <div class="focus-chip" onclick="selectFocus(this)" data-focus="run-longer">🏃 Run Further</div>
           <div class="focus-chip" onclick="selectFocus(this)" data-focus="run-faster">⚡ Run Faster</div>
@@ -1985,6 +2033,43 @@
     d.settings.theme = isDark ? 'dark' : 'light';
     saveData(d);
     applySettings();
+  }
+
+  // ─── TOOLTIP ────────────────────────────────────
+  function showTip(btn, text) {
+    // close any existing tip
+    const existing = document.getElementById('active-tip');
+    if (existing) {
+      existing.remove();
+      // if tapping the same button, just close
+      if (existing.dataset.src === btn.dataset.tipId) return;
+    }
+
+    const id = Math.random().toString(36).slice(2);
+    btn.dataset.tipId = id;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'tip-bubble';
+    bubble.id = 'active-tip';
+    bubble.dataset.src = id;
+    bubble.textContent = text;
+    document.body.appendChild(bubble);
+
+    // position: below the button, clamped to viewport
+    const r = btn.getBoundingClientRect();
+    const bw = Math.min(270, window.innerWidth - 24);
+    bubble.style.width = bw + 'px';
+    bubble.style.top  = (r.bottom + 8) + 'px';
+    const left = Math.max(12, Math.min(r.left - 8, window.innerWidth - bw - 12));
+    bubble.style.left = left + 'px';
+
+    // dismiss on next tap anywhere
+    setTimeout(() => {
+      document.addEventListener('click', function close() {
+        document.getElementById('active-tip')?.remove();
+        document.removeEventListener('click', close);
+      }, { once: true });
+    }, 50);
   }
 
   // ─── UNITS TOGGLE ───────────────────────────────
