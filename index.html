@@ -83,6 +83,25 @@
       --nav-height: 58px;
     }
 
+    /* Light mode token overrides */
+    [data-theme="light"] {
+      --bg-app:      #f5f3ef;
+      --bg-surface:  #edeae5;
+      --bg-card:     #e6e3dd;
+      --bg-elevated: #dedbd5;
+
+      --text-primary:   #18171a;
+      --text-secondary: #5a5854;
+      --text-tertiary:  #9a9890;
+      --text-on-accent: #fff;
+
+      --border:        rgba(0,0,0,0.08);
+      --border-strong: rgba(0,0,0,0.14);
+
+      --accent-dim: #d4f0e2;
+      --amber-dim:  #f5e8ca;
+    }
+
     /* =============================================
        RESET
        ============================================= */
@@ -1481,21 +1500,23 @@
       <div class="settings-section">
         <div class="label" style="margin-bottom:var(--sp-sm)">Preferences</div>
         <div class="card card-p">
-          <div class="settings-row">
+          <div class="settings-row" onclick="toggleUnits()">
             <div class="sr-info"><div class="sr-title">Distance Units</div></div>
-            <div class="sr-val">km ›</div>
+            <div class="sr-val" id="pref-units">mi ›</div>
           </div>
-          <div class="settings-row">
-            <div class="sr-info"><div class="sr-title">Pace Format</div></div>
-            <div class="sr-val">min/km ›</div>
+          <div class="settings-row" onclick="toggleUnits()">
+            <div class="sr-info">
+              <div class="sr-title">Pace Format</div>
+              <div class="sr-sub">Follows distance unit</div>
+            </div>
+            <div class="sr-val" id="pref-pace">min/mi ›</div>
           </div>
-          <div class="settings-row" style="border-bottom:none">
+          <div class="settings-row" style="border-bottom:none;cursor:default">
             <div class="sr-info">
               <div class="sr-title">Dark Mode</div>
-              <div class="sr-sub">Always on for now</div>
             </div>
-            <label class="toggle">
-              <input type="checkbox" checked disabled>
+            <label class="toggle" onclick="event.stopPropagation()">
+              <input type="checkbox" id="toggle-theme" onchange="toggleTheme(this.checked)">
               <div class="toggle-track"></div>
             </label>
           </div>
@@ -1855,7 +1876,41 @@
   }
 
   function defaultData() {
-    return { logs: [], plan: {}, raceTarget: null, settings: { units: 'km' } };
+    return { logs: [], plan: {}, raceTarget: null, settings: { units: 'mi', theme: 'dark' } };
+  }
+
+  // ─── SETTINGS ───────────────────────────────────
+  function applySettings() {
+    const d = loadData();
+    const s = d.settings;
+
+    // Units
+    const mi = (s.units || 'mi') === 'mi';
+    const unitsEl = document.getElementById('pref-units');
+    const paceEl  = document.getElementById('pref-pace');
+    if (unitsEl) unitsEl.textContent = mi ? 'mi ›' : 'km ›';
+    if (paceEl)  paceEl.textContent  = mi ? 'min/mi ›' : 'min/km ›';
+
+    // Theme
+    const dark = (s.theme || 'dark') === 'dark';
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    document.querySelector('meta[name="theme-color"]').content = dark ? '#19191c' : '#f5f3ef';
+    const themeToggle = document.getElementById('toggle-theme');
+    if (themeToggle) themeToggle.checked = dark;
+  }
+
+  function toggleUnits() {
+    const d = loadData();
+    d.settings.units = (d.settings.units || 'mi') === 'mi' ? 'km' : 'mi';
+    saveData(d);
+    applySettings();
+  }
+
+  function toggleTheme(isDark) {
+    const d = loadData();
+    d.settings.theme = isDark ? 'dark' : 'light';
+    saveData(d);
+    applySettings();
   }
 
   // ─── EFFORT SLIDER ──────────────────────────────
@@ -1923,6 +1978,7 @@
 
   // ─── INIT ───────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
+    applySettings();
     initDate();
     initWeekStrip();
     initPlanDays();
