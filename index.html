@@ -905,6 +905,17 @@
     .ib-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
     .ib-sub   { font-size: 11px; color: var(--text-secondary); line-height: 1.4; }
     .ib-close { font-size: 18px; color: var(--text-tertiary); cursor: pointer; flex-shrink: 0; padding: 4px; }
+    .ib-install-btn {
+      flex-shrink: 0;
+      background: var(--accent);
+      color: var(--text-on-accent);
+      border: none;
+      border-radius: var(--r-pill);
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
 
     /* =============================================
        EMPTY STATE
@@ -971,13 +982,14 @@
     <!-- ═══════════════ TODAY ══════════════════ -->
     <div class="view active" id="view-today">
 
-      <!-- iOS install nudge -->
+      <!-- Install nudge (iOS manual + Android native prompt) -->
       <div class="install-banner" id="install-banner">
         <div class="ib-icon">📲</div>
         <div style="flex:1">
-          <div class="ib-title">Add to Home Screen</div>
-          <div class="ib-sub">Tap Share → "Add to Home Screen" for the full app experience</div>
+          <div class="ib-title" id="ib-title">Add to Home Screen</div>
+          <div class="ib-sub" id="ib-sub">Tap Share → "Add to Home Screen" for the full app experience</div>
         </div>
+        <button class="ib-install-btn" id="ib-install-btn" style="display:none">Install</button>
         <div class="ib-close" id="ib-close">✕</div>
       </div>
 
@@ -1920,18 +1932,62 @@
     s.addEventListener('input', () => { v.textContent = `${s.value} / 10`; });
   }
 
-  // ─── iOS INSTALL PROMPT ─────────────────────────
-  function initInstallPrompt() {
-    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    const isStandalone = window.navigator.standalone === true;
-    const dismissed = localStorage.getItem('tbf-install-dismissed');
-    if (isIOS && !isStandalone && !dismissed) {
-      document.getElementById('install-banner').classList.add('show');
+  // ─── INSTALL PROMPT (Android + iOS) ────────────
+  let deferredInstallPrompt = null;
+
+  // Android: browser fires this before showing its own mini-infobar.
+  // We capture it so we can trigger the native prompt from our banner.
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    if (!localStorage.getItem('tbf-install-dismissed')) {
+      showInstallBanner('android');
     }
-    document.getElementById('ib-close').addEventListener('click', () => {
-      document.getElementById('install-banner').classList.remove('show');
-      localStorage.setItem('tbf-install-dismissed', '1');
-    });
+  });
+
+  // If the user installs from outside the banner, hide it.
+  window.addEventListener('appinstalled', () => {
+    hideInstallBanner();
+    deferredInstallPrompt = null;
+  });
+
+  function showInstallBanner(platform) {
+    const banner = document.getElementById('install-banner');
+    if (!banner) return;
+    if (platform === 'android') {
+      document.getElementById('ib-title').textContent = 'Install To Be Frank';
+      document.getElementById('ib-sub').textContent = 'Add to your home screen for the full app experience.';
+      const btn = document.getElementById('ib-install-btn');
+      btn.style.display = 'block';
+      btn.addEventListener('click', async () => {
+        if (!deferredInstallPrompt) return;
+        deferredInstallPrompt.prompt();
+        const { outcome } = await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null;
+        if (outcome === 'accepted') hideInstallBanner();
+      });
+    }
+    banner.classList.add('show');
+  }
+
+  function hideInstallBanner() {
+    const banner = document.getElementById('install-banner');
+    if (banner) banner.classList.remove('show');
+    localStorage.setItem('tbf-install-dismissed', '1');
+  }
+
+  function initInstallPrompt() {
+    const dismissed = localStorage.getItem('tbf-install-dismissed');
+
+    // iOS: no beforeinstallprompt — show manual instructions
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isStandalone = window.navigator.standalone === true ||
+                         window.matchMedia('(display-mode: standalone)').matches;
+    if (isIOS && !isStandalone && !dismissed) {
+      showInstallBanner('ios');
+    }
+
+    document.getElementById('ib-close').addEventListener('click', hideInstallBanner);
   }
 
   // ─── SCREEN WAKE LOCK (iOS 16.4+) ───────────────
