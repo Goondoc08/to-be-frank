@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tbf-v2';
+const CACHE_NAME = 'tbf-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -22,19 +22,36 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  if (event.request.url.includes('/api/')) {
+  const req = event.request;
+
+  // API calls: network-first, fall back to cache when offline
+  if (req.url.includes('/api/')) {
+    event.respondWith(fetch(req).catch(() => caches.match(req)));
+    return;
+  }
+
+  // HTML / navigations: network-first so a new app version shows up
+  // immediately when online; fall back to the cached page when offline.
+  const isHTML = req.mode === 'navigate' ||
+                 (req.headers.get('accept') || '').includes('text/html');
+  if (isHTML) {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match(event.request))
+      fetch(req).then(response => {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put('./index.html', clone));
+        return response;
+      }).catch(() => caches.match(req).then(c => c || caches.match('./index.html')))
     );
     return;
   }
 
+  // Other static assets: cache-first for speed, then network + cache fill
   event.respondWith(
-    caches.match(event.request).then(cached => {
-      return cached || fetch(event.request).then(response => {
+    caches.match(req).then(cached => {
+      return cached || fetch(req).then(response => {
         if (response.ok) {
           const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
         }
         return response;
       });
