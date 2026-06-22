@@ -865,6 +865,58 @@
     }
     .garmin-badge.connected .gb-dot { background: var(--accent); }
 
+    /* Focus chip grid */
+    .focus-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--sp-sm);
+    }
+    .focus-chip {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 11px var(--sp-md);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .focus-chip:active { background: var(--bg-elevated); }
+    .focus-chip.sel {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* Segmented control (km / mi) */
+    .seg-control {
+      display: flex;
+      background: var(--bg-elevated);
+      border-radius: var(--r-md);
+      padding: 3px;
+      gap: 2px;
+    }
+    .seg-btn {
+      flex: 1;
+      text-align: center;
+      padding: 5px 10px;
+      border-radius: calc(var(--r-md) - 2px);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text-tertiary);
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .seg-btn.active {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border-strong);
+    }
+
     .toggle { position: relative; width: 44px; height: 26px; }
     .toggle input { display: none; }
     .toggle-track {
@@ -1464,7 +1516,6 @@
         <div class="profile-avatar">🧑</div>
         <div>
           <div class="profile-name">Frank</div>
-          <div class="profile-sub">Runner · Boulderer · Tennis · Strength</div>
         </div>
       </div>
 
@@ -1490,14 +1541,6 @@
         <div class="label" style="margin-bottom:var(--sp-sm)">Training Profile</div>
         <div class="card card-p">
           <div class="settings-row">
-            <div class="sr-info"><div class="sr-title">Primary Sport</div></div>
-            <div class="sr-val">Running ›</div>
-          </div>
-          <div class="settings-row">
-            <div class="sr-info"><div class="sr-title">Strength Level</div></div>
-            <div class="sr-val">Beginner ›</div>
-          </div>
-          <div class="settings-row">
             <div class="sr-info"><div class="sr-title">Weekly Run Target</div></div>
             <div class="sr-val">— ›</div>
           </div>
@@ -1508,13 +1551,32 @@
         </div>
       </div>
 
+      <!-- Current Focus -->
+      <div class="settings-section">
+        <div class="label" style="margin-bottom:3px">Current Focus</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:var(--sp-sm)">Frank tailors session emphasis around this</div>
+        <div class="focus-grid" id="focus-grid">
+          <div class="focus-chip" onclick="selectFocus(this)" data-focus="run-longer">🏃 Run Further</div>
+          <div class="focus-chip" onclick="selectFocus(this)" data-focus="run-faster">⚡ Run Faster</div>
+          <div class="focus-chip" onclick="selectFocus(this)" data-focus="cadence">🦶 Improve Cadence</div>
+          <div class="focus-chip" onclick="selectFocus(this)" data-focus="economy">🎯 Run Economy</div>
+          <div class="focus-chip" onclick="selectFocus(this)" data-focus="glutes">🍑 Glutes & Hips</div>
+          <div class="focus-chip" onclick="selectFocus(this)" data-focus="core">🧱 Core Stability</div>
+          <div class="focus-chip" onclick="selectFocus(this)" data-focus="power">💥 Lower Body Power</div>
+          <div class="focus-chip" onclick="selectFocus(this)" data-focus="injury">🛡️ Injury Prevention</div>
+        </div>
+      </div>
+
       <!-- Preferences -->
       <div class="settings-section">
         <div class="label" style="margin-bottom:var(--sp-sm)">Preferences</div>
         <div class="card card-p">
-          <div class="settings-row" onclick="toggleUnits()">
+          <div class="settings-row" style="cursor:default">
             <div class="sr-info"><div class="sr-title">Distance Units</div></div>
-            <div class="sr-val" id="pref-units">mi ›</div>
+            <div class="seg-control">
+              <div class="seg-btn active" id="unit-km" onclick="setUnits('km')">km</div>
+              <div class="seg-btn" id="unit-mi" onclick="setUnits('mi')">mi</div>
+            </div>
           </div>
           <div class="settings-row" onclick="toggleUnits()">
             <div class="sr-info">
@@ -1925,6 +1987,39 @@
     applySettings();
   }
 
+  // ─── UNITS TOGGLE ───────────────────────────────
+  function setUnits(unit) {
+    document.getElementById('unit-km').classList.toggle('active', unit === 'km');
+    document.getElementById('unit-mi').classList.toggle('active', unit === 'mi');
+    const data = loadData();
+    data.settings.units = unit;
+    saveData(data);
+  }
+
+  function initUnits() {
+    const data = loadData();
+    const unit = data.settings?.units || 'km';
+    setUnits(unit);
+  }
+
+  // ─── CURRENT FOCUS ──────────────────────────────
+  function selectFocus(el) {
+    document.querySelectorAll('.focus-chip').forEach(c => c.classList.remove('sel'));
+    el.classList.add('sel');
+    const data = loadData();
+    data.settings.focus = el.dataset.focus;
+    saveData(data);
+  }
+
+  function initFocus() {
+    const data = loadData();
+    const focus = data.settings?.focus;
+    if (focus) {
+      const chip = document.querySelector(`.focus-chip[data-focus="${focus}"]`);
+      if (chip) chip.classList.add('sel');
+    }
+  }
+
   // ─── EFFORT SLIDER ──────────────────────────────
   function initEffort() {
     const s = document.getElementById('effort-slider');
@@ -2039,6 +2134,8 @@
     initWeekStrip();
     initPlanDays();
     initEffort();
+    initUnits();
+    initFocus();
     initInstallPrompt();
     renderLogs();
   });
