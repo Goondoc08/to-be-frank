@@ -1043,6 +1043,47 @@
     .empty .e-desc  { font-size: 13px; line-height: 1.5; }
 
     /* =============================================
+       PROGRESS VIEW
+       ============================================= */
+    .stat-pill .st { font-size: 10px; font-weight: 600; margin-top: 3px; }
+    .st-up      { color: var(--accent); }
+    .st-down    { color: #c45c5c; }
+    .st-neutral { color: var(--text-tertiary); }
+
+    .spark-card {
+      background: var(--bg-card);
+      border-radius: var(--r-lg);
+      border: 1px solid var(--border);
+      padding: var(--sp-md);
+    }
+    .spark-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--sp-sm);
+    }
+    .spark-trend { font-size: 11px; font-weight: 600; }
+    .spark-svg   { width: 100%; height: 48px; display: block; overflow: visible; }
+    .spark-footer {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 5px;
+      font-size: 10px;
+      color: var(--text-tertiary);
+    }
+
+    .pb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-sm); }
+    .pb-item {
+      background: var(--bg-surface);
+      border-radius: var(--r-md);
+      border: 1px solid var(--border);
+      padding: 12px var(--sp-md);
+    }
+    .pb-item .pb-dist { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-tertiary); margin-bottom: 2px; }
+    .pb-item .pb-time { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .pb-item .pb-sub  { font-size: 10px; color: var(--text-tertiary); margin-top: 2px; }
+
+    /* =============================================
        BOTTOM SHEET
        ============================================= */
     .overlay {
@@ -1518,63 +1559,111 @@
 
     </div><!-- /view-train -->
 
-    <!-- ═══════════════ LOG ══════════════════════ -->
-    <div class="view" id="view-log">
+    <!-- ═══════════════ PROGRESS ═════════════════ -->
+    <div class="view" id="view-progress">
 
-      <div style="font-size:22px;font-weight:700;letter-spacing:-0.4px;margin-bottom:var(--sp-md)">Log Activity</div>
+      <div style="font-size:22px;font-weight:700;letter-spacing:-0.4px;margin-bottom:var(--sp-md)">Progress</div>
 
-      <div class="label" style="margin-bottom:var(--sp-sm)">Activity Type</div>
-      <div class="log-type-grid">
-        <div class="lt-btn sel" onclick="selectType(this)">
-          <div class="lt-icon">🏃</div>
-          <div class="lt-label">Run</div>
+      <!-- Sample data notice -->
+      <div style="font-size:11px;color:var(--text-tertiary);background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-md);padding:8px 12px;margin-bottom:var(--sp-md);display:flex;align-items:center;gap:6px">
+        <span>📡</span> Sample data — connect Garmin for live stats
+      </div>
+
+      <!-- Race Target -->
+      <div class="race-card" onclick="openSheet('sheet-race')" style="margin-bottom:var(--sp-md)">
+        <div class="race-card-icon">🏁</div>
+        <div style="flex:1">
+          <div class="rci-title">Set a Race Target</div>
+          <div class="rci-sub">Plan builds toward your goal event</div>
         </div>
-        <div class="lt-btn" onclick="selectType(this)">
-          <div class="lt-icon">🎾</div>
-          <div class="lt-label">Tennis</div>
+        <svg class="chevron-r" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9,18 15,12 9,6"/></svg>
+      </div>
+
+      <!-- This Month stats -->
+      <div class="label" style="margin-bottom:var(--sp-sm)">This Month</div>
+      <div class="stat-row" style="margin-bottom:var(--sp-md)">
+        <div class="stat-pill">
+          <div class="sv">142<sub>km</sub></div>
+          <div class="sl">Volume</div>
+          <div class="st st-up">↑ 12%</div>
         </div>
-        <div class="lt-btn" onclick="selectType(this)">
-          <div class="lt-icon">🧗</div>
-          <div class="lt-label">Boulder</div>
+        <div class="stat-pill">
+          <div class="sv">18</div>
+          <div class="sl">Sessions</div>
+          <div class="st st-up">↑ 2</div>
         </div>
-        <div class="lt-btn" onclick="selectType(this)">
-          <div class="lt-icon">🏋️</div>
-          <div class="lt-label">Strength</div>
+        <div class="stat-pill">
+          <div class="sv" style="font-size:18px">5:38</div>
+          <div class="sl">Avg Pace</div>
+          <div class="st st-up">↓ 4s</div>
         </div>
       </div>
 
-      <div class="form-group">
-        <label class="form-label">Duration (minutes)</label>
-        <input type="number" class="form-input" placeholder="e.g. 45" inputmode="numeric" id="log-duration">
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Perceived Effort</label>
-        <input type="range" min="1" max="10" value="5" id="effort-slider">
-        <div class="effort-row">
-          <span>Easy</span>
-          <span class="effort-val" id="effort-val">5 / 10</span>
-          <span>Max</span>
+      <!-- Weekly Volume -->
+      <div class="spark-card" style="margin-bottom:var(--sp-md)">
+        <div class="spark-head">
+          <div class="label">Weekly Volume</div>
+          <div class="spark-trend st-up">18 km this week</div>
+        </div>
+        <svg class="spark-svg" id="spark-volume"></svg>
+        <div class="spark-footer">
+          <span>8 weeks ago</span>
+          <span>This week</span>
         </div>
       </div>
 
-      <div class="form-group">
-        <label class="form-label">Notes (optional)</label>
-        <textarea class="form-input" placeholder="How did it feel? Anything notable?" rows="3" id="log-notes"></textarea>
-      </div>
-
-      <button class="btn btn-primary btn-full" style="margin-bottom:var(--sp-xl)" onclick="saveLog()">Save Activity</button>
-
-      <div class="label" style="margin-bottom:var(--sp-sm)">Recent Manual Logs</div>
-      <div class="card card-p" id="log-list">
-        <div class="empty">
-          <div class="e-icon">📋</div>
-          <div class="e-title">No manual logs yet</div>
-          <div class="e-desc">Garmin activities will appear automatically once connected</div>
+      <!-- Pace Trend -->
+      <div class="spark-card" style="margin-bottom:var(--sp-md)">
+        <div class="spark-head">
+          <div class="label">Avg Pace Trend</div>
+          <div class="spark-trend st-up">↓ 4s vs last month</div>
+        </div>
+        <svg class="spark-svg" id="spark-pace"></svg>
+        <div class="spark-footer">
+          <span>5:50 /km</span>
+          <span>5:36 /km</span>
         </div>
       </div>
 
-    </div><!-- /view-log -->
+      <!-- Training Load -->
+      <div class="spark-card" style="margin-bottom:var(--sp-md)">
+        <div class="spark-head">
+          <div class="label">Training Load</div>
+          <div class="spark-trend" style="color:var(--text-secondary)">Building phase</div>
+        </div>
+        <svg class="spark-svg" id="spark-load"></svg>
+        <div class="spark-footer">
+          <span>8 weeks ago</span>
+          <span>This week</span>
+        </div>
+      </div>
+
+      <!-- Personal Bests -->
+      <div class="label" style="margin-bottom:var(--sp-sm)">Personal Bests</div>
+      <div class="pb-grid" style="margin-bottom:var(--sp-xl)">
+        <div class="pb-item">
+          <div class="pb-dist">5K</div>
+          <div class="pb-time">—</div>
+          <div class="pb-sub">Add time</div>
+        </div>
+        <div class="pb-item">
+          <div class="pb-dist">10K</div>
+          <div class="pb-time">—</div>
+          <div class="pb-sub">Add time</div>
+        </div>
+        <div class="pb-item">
+          <div class="pb-dist">Half</div>
+          <div class="pb-time">—</div>
+          <div class="pb-sub">Add time</div>
+        </div>
+        <div class="pb-item">
+          <div class="pb-dist">Marathon</div>
+          <div class="pb-time">—</div>
+          <div class="pb-sub">Add time</div>
+        </div>
+      </div>
+
+    </div><!-- /view-progress -->
 
     <!-- ═══════════════ PROFILE ══════════════════ -->
     <div class="view" id="view-profile">
@@ -1697,11 +1786,12 @@
       </svg>
       <span>Train</span>
     </div>
-    <div class="nav-item" data-view="log" onclick="showView('log')">
+    <div class="nav-item" data-view="progress" onclick="showView('progress')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        <polyline points="23,6 13,16 8,11 1,18"/>
+        <polyline points="17,6 23,6 23,12"/>
       </svg>
-      <span>Log</span>
+      <span>Progress</span>
     </div>
     <div class="nav-item" data-view="profile" onclick="showView('profile')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1811,7 +1901,7 @@
 
 <script>
   // ─── VIEW MANAGEMENT ────────────────────────────
-  const VIEW_ORDER = ['today', 'plan', 'train', 'log', 'profile'];
+  const VIEW_ORDER = ['today', 'plan', 'train', 'progress', 'profile'];
 
   function showView(id, direction) {
     const next = document.getElementById('view-' + id);
@@ -2003,60 +2093,82 @@
     });
   }
 
-  // ─── LOG ────────────────────────────────────────
-  function selectType(el) {
-    document.querySelectorAll('.lt-btn').forEach(b => b.classList.remove('sel'));
-    el.classList.add('sel');
+  // ─── PROGRESS SPARKLINES ────────────────────────
+  function barSparkline(svg, data, opts = {}) {
+    const color = opts.color || 'var(--accent)';
+    const W = 200, H = 44, gap = 4;
+    const bw = (W - gap * (data.length - 1)) / data.length;
+    const max = Math.max(...data);
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('preserveAspectRatio', 'none');
+    svg.innerHTML = '';
+    data.forEach((v, i) => {
+      const bh = Math.max(3, (v / max) * H);
+      const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      rect.setAttribute('x', (i * (bw + gap)).toFixed(1));
+      rect.setAttribute('y', (H - bh).toFixed(1));
+      rect.setAttribute('width', bw.toFixed(1));
+      rect.setAttribute('height', bh.toFixed(1));
+      rect.setAttribute('rx', '3');
+      rect.setAttribute('fill', color);
+      rect.setAttribute('opacity', i === data.length - 1 ? '1' : '0.38');
+      svg.appendChild(rect);
+    });
   }
 
-  function saveLog() {
-    const dur   = document.getElementById('log-duration').value;
-    const eff   = document.getElementById('effort-slider').value;
-    const notes = document.getElementById('log-notes').value;
-    const type  = document.querySelector('.lt-btn.sel .lt-icon')?.textContent || '🏃';
-
-    if (!dur) { alert('Please enter a duration.'); return; }
-
-    const data = loadData();
-    data.logs.unshift({ type, dur: parseInt(dur), effort: parseInt(eff), notes, date: new Date().toISOString() });
-    saveData(data);
-    renderLogs();
-
-    document.getElementById('log-duration').value = '';
-    document.getElementById('log-notes').value = '';
-    document.getElementById('effort-slider').value = 5;
-    document.getElementById('effort-val').textContent = '5 / 10';
+  function lineSparkline(svg, data, opts = {}) {
+    const color = opts.color || 'var(--accent)';
+    const invertY = opts.invertY || false;
+    const W = 200, H = 44;
+    const min = Math.min(...data), range = Math.max(...data) - min || 1;
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('preserveAspectRatio', 'none');
+    svg.innerHTML = '';
+    const pts = data.map((v, i) => {
+      const x = (i / (data.length - 1)) * W;
+      const norm = (v - min) / range;
+      const y = invertY ? norm * (H - 6) + 3 : (1 - norm) * (H - 6) + 3;
+      return [x, y];
+    });
+    const pStr = pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+    // Area fill
+    const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    poly.setAttribute('points', `0,${H} ${pStr} ${W},${H}`);
+    poly.setAttribute('fill', color);
+    poly.setAttribute('opacity', '0.1');
+    svg.appendChild(poly);
+    // Line
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    line.setAttribute('points', pStr);
+    line.setAttribute('fill', 'none');
+    line.setAttribute('stroke', color);
+    line.setAttribute('stroke-width', '2');
+    line.setAttribute('stroke-linecap', 'round');
+    line.setAttribute('stroke-linejoin', 'round');
+    svg.appendChild(line);
+    // End dot
+    const [lx, ly] = pts[pts.length - 1];
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('cx', lx.toFixed(1));
+    dot.setAttribute('cy', ly.toFixed(1));
+    dot.setAttribute('r', '3');
+    dot.setAttribute('fill', color);
+    svg.appendChild(dot);
   }
 
-  function renderLogs() {
-    const list = document.getElementById('log-list');
-    const data = loadData();
-    if (!data.logs.length) {
-      list.innerHTML = `<div class="empty"><div class="e-icon">📋</div><div class="e-title">No manual logs yet</div><div class="e-desc">Garmin activities will appear automatically once connected</div></div>`;
-      return;
-    }
-    list.innerHTML = data.logs.slice(0, 10).map(l => {
-      const d = new Date(l.date);
-      const ago = formatAgo(d);
-      return `<div class="activity-item">
-        <div class="act-icon run">${l.type}</div>
-        <div class="act-info">
-          <div class="ai-name">Manual Log</div>
-          <div class="ai-detail">${ago} · ${l.dur} min</div>
-        </div>
-        <div class="act-stat">
-          <div class="as-val">${l.effort}/10</div>
-          <div class="as-unit">effort</div>
-        </div>
-      </div>`;
-    }).join('');
-  }
+  function initProgress() {
+    // Mock 8-week data — replaced by Garmin history in Phase 2
+    const weeklyKm   = [32, 38, 35, 42, 46, 40, 48, 18]; // last = current partial week
+    const avgPaceSec = [350, 347, 345, 342, 341, 345, 338, 336]; // s/km, lower = faster
+    const loadScore  = [58, 72, 65, 79, 84, 71, 88, 34];
 
-  function formatAgo(d) {
-    const diff = Math.floor((Date.now() - d) / 60000);
-    if (diff < 60)  return `${diff}m ago`;
-    if (diff < 1440) return `${Math.floor(diff/60)}h ago`;
-    return `${Math.floor(diff/1440)}d ago`;
+    const volSvg  = document.getElementById('spark-volume');
+    const paceSvg = document.getElementById('spark-pace');
+    const loadSvg = document.getElementById('spark-load');
+
+    if (volSvg)  barSparkline(volSvg, weeklyKm);
+    if (paceSvg) lineSparkline(paceSvg, avgPaceSec, { invertY: true }); // lower s/km = better = drawn up
+    if (loadSvg) lineSparkline(loadSvg, loadScore, { color: 'var(--amber)' });
   }
 
   // ─── TRAIN TAB SWITCHER ─────────────────────────
@@ -2193,13 +2305,6 @@
     }
   }
 
-  // ─── EFFORT SLIDER ──────────────────────────────
-  function initEffort() {
-    const s = document.getElementById('effort-slider');
-    const v = document.getElementById('effort-val');
-    s.addEventListener('input', () => { v.textContent = `${s.value} / 10`; });
-  }
-
   // ─── INSTALL PROMPT (Android + iOS) ────────────
   let deferredInstallPrompt = null;
 
@@ -2306,11 +2411,10 @@
     initDate();
     initWeekStrip();
     initPlanDays();
-    initEffort();
     initUnits();
     initFocus();
     initInstallPrompt();
-    renderLogs();
+    initProgress();
   });
 </script>
 
