@@ -191,19 +191,8 @@
     .main {
       flex: 1;
       min-height: 0;
-      overflow-y: auto;
-      overflow-x: hidden;
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior-y: contain;
-      scrollbar-width: none;
-    }
-    /* Hide scrollbar on touch/mobile, show subtle one on desktop */
-    .main::-webkit-scrollbar { display: none; }
-    @media (hover: hover) and (pointer: fine) {
-      .main::-webkit-scrollbar { display: block; width: 4px; }
-      .main::-webkit-scrollbar-track { background: transparent; }
-      .main::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: var(--r-pill); }
-      .main::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+      position: relative; /* positioning context for absolute views */
+      overflow: hidden;   /* clips views during swipe transitions */
     }
 
     /* =============================================
@@ -239,19 +228,51 @@
     .nav-item.active { color: var(--accent); }
 
     /* =============================================
-       VIEWS
+       VIEWS — absolutely positioned so two can
+       coexist during a swipe transition
        ============================================= */
     .view {
       display: none;
+      position: absolute;
+      inset: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+      scrollbar-width: none;
       padding: var(--sp-md);
       padding-bottom: calc(var(--sp-xl) + 8px);
     }
-    .view.active {
-      display: block;
-      animation: viewIn 0.18s ease;
+    .view::-webkit-scrollbar { display: none; }
+    @media (hover: hover) and (pointer: fine) {
+      .view::-webkit-scrollbar { display: block; width: 4px; }
+      .view::-webkit-scrollbar-track { background: transparent; }
+      .view::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: var(--r-pill); }
+      .view::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
     }
-    @keyframes viewIn {
-      from { opacity: 0; transform: translateY(5px); }
+    .view.active { display: block; }
+
+    /* Swipe slide animations */
+    .view.slide-from-right {
+      animation: slideFromRight 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    }
+    .view.slide-from-left {
+      animation: slideFromLeft 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    }
+    @keyframes slideFromRight {
+      from { transform: translateX(100%); }
+      to   { transform: translateX(0); }
+    }
+    @keyframes slideFromLeft {
+      from { transform: translateX(-100%); }
+      to   { transform: translateX(0); }
+    }
+    /* Tab-click fade (no swipe direction) */
+    .view.fade-in {
+      animation: fadeIn 0.18s ease forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
       to   { opacity: 1; transform: translateY(0); }
     }
 
@@ -1790,13 +1811,80 @@
 
 <script>
   // ─── VIEW MANAGEMENT ────────────────────────────
-  function showView(id) {
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const VIEW_ORDER = ['today', 'plan', 'train', 'log', 'profile'];
+
+  function showView(id, direction) {
+    const next = document.getElementById('view-' + id);
+    const current = document.querySelector('.view.active');
+    if (!next || next === current) return;
+
+    // Clear any lingering animation classes
+    const animClasses = ['slide-from-right','slide-from-left','fade-in'];
+    document.querySelectorAll('.view').forEach(v => v.classList.remove(...animClasses));
+
+    current?.classList.remove('active');
+    next.scrollTop = 0;
+    next.classList.add('active');
+
+    // Apply entrance animation
+    if (direction === 'forward') {
+      next.classList.add('slide-from-right');
+    } else if (direction === 'back') {
+      next.classList.add('slide-from-left');
+    } else {
+      next.classList.add('fade-in');
+    }
+
+    // Clean up animation class after it finishes
+    next.addEventListener('animationend', () => {
+      next.classList.remove(...animClasses);
+    }, { once: true });
+
+    // Update nav
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    document.getElementById('view-' + id).classList.add('active');
     const nav = document.querySelector(`.nav-item[data-view="${id}"]`);
     if (nav) nav.classList.add('active');
   }
+
+  // ─── SWIPE NAVIGATION ───────────────────────────
+  (function initSwipe() {
+    const main = document.querySelector('.main');
+    let startX = 0, startY = 0, tracking = false;
+
+    main.addEventListener('touchstart', e => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      tracking = true;
+    }, { passive: true });
+
+    main.addEventListener('touchmove', e => {
+      if (!tracking) return;
+      const dx = Math.abs(e.touches[0].clientX - startX);
+      const dy = Math.abs(e.touches[0].clientY - startY);
+      // If vertical scroll dominates early, stop tracking for swipe
+      if (dy > dx && dy > 10) tracking = false;
+    }, { passive: true });
+
+    main.addEventListener('touchend', e => {
+      if (!tracking) return;
+      tracking = false;
+      const dx = e.changedTouches[0].clientX - startX;
+      const dy = e.changedTouches[0].clientY - startY;
+
+      // Require horizontal dominance and minimum distance
+      if (Math.abs(dx) < 55 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
+
+      const active = document.querySelector('.view.active');
+      const idx = VIEW_ORDER.findIndex(v => 'view-' + v === active?.id);
+      if (idx === -1) return;
+
+      if (dx < 0 && idx < VIEW_ORDER.length - 1) {
+        showView(VIEW_ORDER[idx + 1], 'forward');
+      } else if (dx > 0 && idx > 0) {
+        showView(VIEW_ORDER[idx - 1], 'back');
+      }
+    }, { passive: true });
+  })();
 
   // ─── SHEET MANAGEMENT ───────────────────────────
   function openSheet(id) {
