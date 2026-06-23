@@ -1914,6 +1914,14 @@
   </div>
 </div>
 
+<!-- Session Detail (Plan → sheet) -->
+<div class="overlay" id="sheet-session" onclick="closeSheet('sheet-session')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div id="sheet-session-inner"></div>
+  </div>
+</div>
+
 <script>
   // ─── VIEW MANAGEMENT ────────────────────────────
   const VIEW_ORDER = ['today', 'plan', 'train', 'progress', 'profile'];
@@ -2044,35 +2052,104 @@
   }
 
   // ─── PLAN DAYS ──────────────────────────────────
+  // Plan = only prescribed training: runs, strength, mobility.
+  // Tennis / bouldering appear via Garmin detection and shift plan intensity.
+  const PLAN_DATA = [
+    { sessions: [{
+      name: 'Easy Run', sub: '45 min · Zone 2 · conversational', type: 'run', dur: '45m',
+      badge: 'Easy Run', badgeClass: 'badge-run', meta: '45 min · ~9 km',
+      title: 'Easy Run',
+      desc: 'Conversational pace throughout. Zone 2 heart rate — you should be able to hold a full sentence.',
+      blocks: [
+        { icon: '🏃', name: 'Warm-up Walk/Jog', sub: '5 min easy · let the body warm up', dur: '5 min' },
+        { icon: '🏃', name: 'Easy Run', sub: 'Zone 2 · conversational · nose breathing comfortable', dur: '35 min' },
+        { icon: '🏃', name: 'Cool-down Walk', sub: 'Let HR settle before stopping', dur: '5 min' },
+      ]
+    }]},
+    { sessions: [{
+      name: 'Runner Strength A', sub: 'Posterior chain · hips · core', type: 'strength', dur: '50m',
+      badge: 'Runner Strength A', badgeClass: 'badge-strength', meta: '50 min · Beginner',
+      title: 'Posterior Chain + Core',
+      desc: 'Runner-focused: glutes, hamstrings, single-leg stability, anti-rotation core. Complements bouldering — no competing grip/shoulder load.',
+      movements: [
+        { thumb: '🦵', name: 'Goblet Squat', detail: '3 × 12 reps · moderate load · full depth' },
+        { thumb: '🍑', name: 'Romanian Deadlift', detail: '3 × 10 reps · slow 3-sec eccentric' },
+        { thumb: '🧘', name: 'Copenhagen Plank', detail: '3 × 20 sec each side · adductor + core' },
+        { thumb: '🦶', name: 'Single-leg Calf Raise', detail: '3 × 15 reps · slow and controlled · off a step' },
+        { thumb: '⚡', name: 'Dead Bug', detail: '3 × 10 each side · lower back stays flat' },
+        { thumb: '🏋️', name: 'Bulgarian Split Squat', detail: '3 × 8 each leg · bodyweight to start' },
+      ]
+    }]},
+    { sessions: [{
+      name: 'Tempo Intervals', sub: '3 × 8 min threshold pace', type: 'run', dur: '52m',
+      badge: 'Threshold', badgeClass: 'badge-run', meta: '52 min · ~10 km',
+      title: 'Tempo Intervals',
+      desc: 'Warm-up 10 min → 3 × 8 min at threshold → 3 min recovery each → Cool-down 10 min',
+      blocks: [
+        { icon: '🏃', name: 'Warm-up', sub: 'Easy pace · Zone 2 · relaxed breathing', dur: '10 min' },
+        { icon: '×3', name: 'Threshold Interval', sub: 'Zone 4 · comfortably hard · nose breathing challenged', dur: '8 min' },
+        { icon: 'REC', iconSm: true, name: 'Recovery Jog', sub: 'Easy between each interval · HR drops to Zone 2', dur: '3 min' },
+        { icon: '🏃', name: 'Cool-down', sub: 'Easy pace · let heart rate fully settle', dur: '10 min' },
+      ]
+    }]},
+    { sessions: [{
+      name: 'Mobility & Recovery', sub: 'Hip flexors · IT band · thoracic', type: 'mobility', dur: '25m',
+      badge: 'Mobility', badgeClass: 'badge-mobility', meta: '25 min · daily friendly',
+      title: 'Hip, IT Band & Thoracic',
+      desc: "Runner's essential maintenance. Targets the areas most restricted by high mileage, bouldering posture, and desk time.",
+      movements: [
+        { thumb: '🧎', name: 'Hip Flexor Lunge Stretch', detail: '60 sec each side · posterior tilt to feel the pull' },
+        { thumb: '🦵', name: 'IT Band / Pigeon Pose', detail: '90 sec each side · breathe into the hip' },
+        { thumb: '🦴', name: '90/90 Hip Rotation', detail: '60 sec each side · internal + external rotation' },
+        { thumb: '🌀', name: 'Thoracic Rotation (Thread the Needle)', detail: '10 slow reps each side · open the upper back' },
+        { thumb: '🦶', name: 'Calf & Achilles Stretch', detail: '60 sec each · straight leg then bent knee' },
+        { thumb: '🤸', name: 'Standing Hamstring Sweep', detail: '10 slow reps each leg · keep spine neutral' },
+        { thumb: '💆', name: "Child's Pose with Lat Reach", detail: '60 sec · decompress the spine · breathe' },
+      ]
+    }]},
+    { sessions: [{
+      name: 'Long Run', sub: 'Easy pace · build to 90 min', type: 'run', dur: '80m',
+      badge: 'Long Run', badgeClass: 'badge-run', meta: '80 min · ~16 km',
+      title: 'Long Run',
+      desc: 'Easy, sustained effort. The cornerstone of your week — build aerobic base and fat adaptation.',
+      blocks: [
+        { icon: '🏃', name: 'Easy Warm-up', sub: '10 min easy jog · feel out the legs', dur: '10 min' },
+        { icon: '🏃', name: 'Sustained Easy Run', sub: "Zone 2 throughout · conversational · don't race it", dur: '60 min' },
+        { icon: '🏃', name: 'Cool-down', sub: '10 min easy jog then walk · HR fully settles', dur: '10 min' },
+      ]
+    }]},
+    { sessions: [{
+      name: 'Runner Strength B', sub: 'Single-leg · power · injury prevention', type: 'strength', dur: '45m',
+      badge: 'Runner Strength B', badgeClass: 'badge-strength', meta: '45 min · Beginner',
+      title: 'Single-leg & Power',
+      desc: 'Single-leg focus for running-specific stability and power. Lower volume than A — quality over quantity.',
+      movements: [
+        { thumb: '🦵', name: 'Step-up', detail: '3 × 10 each leg · slow controlled descent' },
+        { thumb: '🏋️', name: 'Single-leg Romanian Deadlift', detail: '3 × 8 each leg · hip hinge · balance focus' },
+        { thumb: '⚡', name: 'Lateral Band Walk', detail: '3 × 15 steps each direction · medium band' },
+        { thumb: '🍑', name: 'Single-leg Glute Bridge', detail: '3 × 12 each side · squeeze at top' },
+        { thumb: '🧘', name: 'Side-lying Hip Abduction', detail: '3 × 15 each side · slow and controlled' },
+        { thumb: '💪', name: 'Pallof Press', detail: '3 × 10 each side · anti-rotation · stand tall' },
+      ]
+    }]},
+    { sessions: [] }
+  ];
+
   function initPlanDays() {
     const container = document.getElementById('plan-days');
     const now = new Date();
     const dow = now.getDay();
     const mondayOff = dow === 0 ? -6 : 1 - dow;
     const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-
     const typeColor = {
-      run: 'var(--c-run)', strength: 'var(--c-strength)',
-      mobility: 'var(--c-mobility)'
+      run: 'var(--c-run)', strength: 'var(--c-strength)', mobility: 'var(--c-mobility)'
     };
-
-    // Plan = only prescribed training: runs, strength, mobility.
-    // Tennis / bouldering appear via Garmin detection below and shift this plan's intensity.
-    const plan = [
-      { sessions: [{ name:'Easy Run', sub:'45 min · Zone 2 · conversational', type:'run', dur:'45m' }] },
-      { sessions: [{ name:'Runner Strength A', sub:'Posterior chain · hips · core', type:'strength', dur:'50m' }] },
-      { sessions: [{ name:'Tempo Intervals', sub:'3 × 8 min threshold pace', type:'run', dur:'52m' }] },
-      { sessions: [{ name:'Mobility & Recovery', sub:'Hip flexors · IT band · thoracic', type:'mobility', dur:'25m' }] },
-      { sessions: [{ name:'Long Run', sub:'Easy pace · build to 90 min', type:'run', dur:'80m' }] },
-      { sessions: [{ name:'Runner Strength B', sub:'Single-leg · power · injury prevention', type:'strength', dur:'45m' }] },
-      { sessions: [] }
-    ];
 
     dayNames.forEach((name, i) => {
       const d = new Date(now);
       d.setDate(now.getDate() + mondayOff + i);
       const isToday = d.toDateString() === now.toDateString();
-      const data = plan[i];
+      const data = PLAN_DATA[i];
       const row = document.createElement('div');
 
       if (!data.sessions.length) {
@@ -2087,7 +2164,7 @@
       } else {
         row.className = 'plan-day';
         const sessHTML = data.sessions.map(s => `
-          <div class="plan-session-card" onclick="goToSession('${s.type}')">
+          <div class="plan-session-card" onclick="openPlanSheet(${i})">
             <div class="psc-dot" style="background:${typeColor[s.type] || 'var(--text-tertiary)'}"></div>
             <div class="psc-info">
               <div class="psc-name">${s.name}</div>
@@ -2106,6 +2183,74 @@
       }
       container.appendChild(row);
     });
+  }
+
+  function openPlanSheet(dayIdx) {
+    const dayData = PLAN_DATA[dayIdx];
+    if (!dayData?.sessions.length) return;
+    const s = dayData.sessions[0];
+    const now = new Date();
+    const mondayOff = now.getDay() === 0 ? -6 : 1 - now.getDay();
+    const d = new Date(now);
+    d.setDate(now.getDate() + mondayOff + dayIdx);
+    const isToday = d.toDateString() === now.toDateString();
+    document.getElementById('sheet-session-inner').innerHTML = buildSessionSheetHTML(s, isToday);
+    openSheet('sheet-session');
+  }
+
+  function buildSessionSheetHTML(s, isToday) {
+    let contentHTML = '';
+    if (s.type === 'run') {
+      const blocksHTML = s.blocks.map(b => `
+        <div class="run-block">
+          <div class="rb-icon"${b.iconSm ? ' style="font-size:11px"' : ''}>${b.icon}</div>
+          <div class="rb-info">
+            <div class="rbn">${b.name}</div>
+            <div class="rbsb">${b.sub}</div>
+          </div>
+          <div class="rb-dur">${b.dur}</div>
+        </div>
+      `).join('');
+      contentHTML = `
+        <div class="label" style="margin-bottom:var(--sp-sm)">Session Structure</div>
+        <div class="card card-p" style="margin-bottom:var(--sp-md)">${blocksHTML}</div>
+      `;
+    } else {
+      const label = s.type === 'mobility' ? 'Movements — hold each position' : 'Movements';
+      const movsHTML = s.movements.map(m => `
+        <div class="movement-item" style="cursor:default">
+          <div class="mov-thumb">${m.thumb}</div>
+          <div class="mov-info">
+            <div class="mn">${m.name}</div>
+            <div class="mrx">${m.detail}</div>
+          </div>
+        </div>
+      `).join('');
+      contentHTML = `
+        <div class="label" style="margin-bottom:var(--sp-sm)">${label}</div>
+        <div class="movement-list" style="margin-bottom:var(--sp-md)">${movsHTML}</div>
+      `;
+    }
+
+    const ctaHTML = isToday ? `
+      <button class="btn btn-primary btn-full" onclick="goToSession('${s.type}'); closeSheet('sheet-session')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+        ${s.type === 'run' ? 'Push to Garmin &amp; Start' : 'Start Session'}
+      </button>
+    ` : `<p style="text-align:center;font-size:12px;color:var(--text-tertiary);margin:0">Not today's session</p>`;
+
+    return `
+      <div style="margin-bottom:var(--sp-md)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-sm)">
+          <span class="badge ${s.badgeClass}">${s.badge}</span>
+          <span style="font-size:12px;color:var(--text-secondary)">${s.meta}</span>
+        </div>
+        <div style="font-size:22px;font-weight:700;letter-spacing:-0.4px;margin-bottom:5px">${s.title}</div>
+        <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin-bottom:var(--sp-md)">${s.desc}</div>
+      </div>
+      ${contentHTML}
+      ${ctaHTML}
+    `;
   }
 
   // ─── PROGRESS SPARKLINES ────────────────────────
