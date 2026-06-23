@@ -948,6 +948,9 @@
       cursor: pointer;
       transition: all 0.15s;
       user-select: none;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
     }
     .focus-chip:active { background: var(--bg-elevated); }
     .focus-chip.sel {
@@ -956,6 +959,13 @@
       color: var(--accent);
       font-weight: 600;
     }
+    .fc-desc {
+      font-size: 10px;
+      font-weight: 400;
+      color: var(--text-tertiary);
+      line-height: 1.3;
+    }
+    .focus-chip.sel .fc-desc { color: var(--accent); opacity: 0.72; }
 
     /* Segmented control (km / mi) */
     .seg-control {
@@ -1719,14 +1729,14 @@
           <span class="info-btn" onclick="showTip(this,'Shifts the weekly session weighting. A running focus loads more intervals and tempo work. A strength focus increases lifting volume. Injury Prevention swaps high-impact sessions for mobility and low-intensity runs.')">?</span>
         </div>
         <div class="focus-grid" id="focus-grid">
-          <div class="focus-chip" onclick="selectFocus(this)" data-focus="run-longer">🏃 Run Further</div>
-          <div class="focus-chip" onclick="selectFocus(this)" data-focus="run-faster">⚡ Run Faster</div>
-          <div class="focus-chip" onclick="selectFocus(this)" data-focus="cadence">🦶 Improve Cadence</div>
-          <div class="focus-chip" onclick="selectFocus(this)" data-focus="economy">🎯 Run Economy</div>
-          <div class="focus-chip" onclick="selectFocus(this)" data-focus="glutes">🍑 Glutes & Hips</div>
-          <div class="focus-chip" onclick="selectFocus(this)" data-focus="core">🧱 Core Stability</div>
-          <div class="focus-chip" onclick="selectFocus(this)" data-focus="power">💥 Lower Body Power</div>
-          <div class="focus-chip" onclick="selectFocus(this)" data-focus="injury">🛡️ Injury Prevention</div>
+          <div class="focus-chip" onclick="selectFocus(this)" data-focus="run-longer">🏃 Run Further<span class="fc-desc">Longer long run, +5–10% weekly mileage</span></div>
+          <div class="focus-chip" onclick="selectFocus(this)" data-focus="run-faster">⚡ Run Faster<span class="fc-desc">More tempo & intervals, less easy volume</span></div>
+          <div class="focus-chip" onclick="selectFocus(this)" data-focus="cadence">🦶 Improve Cadence<span class="fc-desc">Cadence drills + metronome-paced runs</span></div>
+          <div class="focus-chip" onclick="selectFocus(this)" data-focus="economy">🎯 Run Economy<span class="fc-desc">Strides, form work + plyometrics</span></div>
+          <div class="focus-chip" onclick="selectFocus(this)" data-focus="glutes">🍑 Glutes & Hips<span class="fc-desc">Hip-focused strength + mobility work</span></div>
+          <div class="focus-chip" onclick="selectFocus(this)" data-focus="core">🧱 Core Stability<span class="fc-desc">Anti-rotation + dead bug progressions</span></div>
+          <div class="focus-chip" onclick="selectFocus(this)" data-focus="power">💥 Lower Body Power<span class="fc-desc">Explosive squats, deadlifts + plyos</span></div>
+          <div class="focus-chip" onclick="selectFocus(this)" data-focus="injury">🛡️ Injury Prevention<span class="fc-desc">Lower intensity, more mobility sessions</span></div>
         </div>
       </div>
 
@@ -2326,10 +2336,15 @@
 
   // ─── CURRENT FOCUS ──────────────────────────────
   function selectFocus(el) {
+    const already = el.classList.contains('sel');
     document.querySelectorAll('.focus-chip').forEach(c => c.classList.remove('sel'));
-    el.classList.add('sel');
     const data = loadData();
-    data.settings.focus = el.dataset.focus;
+    if (!already) {
+      el.classList.add('sel');
+      data.settings.focus = el.dataset.focus;
+    } else {
+      data.settings.focus = null;
+    }
     saveData(data);
   }
 
