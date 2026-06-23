@@ -436,15 +436,20 @@
       position: relative;
       overflow: hidden;
     }
-    /* Decorative ambient glow */
+    /* Session type dot grid — top-right corner, color-coded by type */
+    .session-hero { --hero-dot: var(--c-run); }
+    .session-hero[data-type="strength"] { --hero-dot: var(--c-strength); }
+    .session-hero[data-type="mobility"] { --hero-dot: var(--c-mobility); }
     .session-hero::before {
       content: '';
       position: absolute;
-      top: -30px; right: -30px;
-      width: 90px; height: 90px;
-      border-radius: 50%;
-      background: var(--accent-dim);
-      opacity: 0.3;
+      top: 0; right: 0;
+      width: 260px; height: 260px;
+      background-image: radial-gradient(circle, var(--hero-dot) 1px, transparent 1px);
+      background-size: 8px 8px;
+      opacity: 0.28;
+      -webkit-mask-image: radial-gradient(circle at top right, black 30%, transparent 72%);
+      mask-image: radial-gradient(circle at top right, black 30%, transparent 72%);
       pointer-events: none;
     }
 
@@ -1173,7 +1178,7 @@
           <div class="link-sm" onclick="openSheet('sheet-swap')">Swap</div>
         </div>
 
-        <div class="session-hero">
+        <div class="session-hero" data-type="run">
           <div class="sh-top">
             <div class="sh-icon">
               <!-- Running shoe / pace icon -->
