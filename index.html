@@ -1197,7 +1197,7 @@
               <div class="ml">Duration</div>
             </div>
             <div class="sh-meta-item">
-              <div class="mv">~10 km</div>
+              <div class="mv"><span data-km="10" data-format="approx">~10 km</span></div>
               <div class="ml">Distance</div>
             </div>
             <div class="sh-meta-item">
@@ -1232,7 +1232,7 @@
         <div class="label" style="margin-bottom:var(--sp-sm)">Week Summary</div>
         <div class="stat-row">
           <div class="stat-pill">
-            <div class="sv">0<sub>km</sub></div>
+            <div class="sv">0<sub data-unit="dist-label">km</sub></div>
             <div class="sl">Run</div>
           </div>
           <div class="stat-pill">
@@ -1258,11 +1258,11 @@
             <div class="act-icon run">🏃</div>
             <div class="act-info">
               <div class="ai-name">Easy Run</div>
-              <div class="ai-detail">Yesterday · 6.2 km · 35:10</div>
+              <div class="ai-detail">Yesterday · <span data-km="6.2">6.2 km</span> · 35:10</div>
             </div>
             <div class="act-stat">
-              <div class="as-val">5:40</div>
-              <div class="as-unit">/km</div>
+              <div class="as-val"><span data-pace-sec="340" data-format="num">5:40</span></div>
+              <div class="as-unit" data-unit="pace-label">/km</div>
             </div>
           </div>
           <div class="activity-item">
@@ -1366,7 +1366,7 @@
         <div style="margin-bottom:var(--sp-md)">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-sm)">
             <span class="badge badge-run">Threshold</span>
-            <span style="font-size:12px;color:var(--text-secondary)">52 min · ~10 km</span>
+            <span style="font-size:12px;color:var(--text-secondary)">52 min · <span data-km="10" data-format="approx">~10 km</span></span>
           </div>
           <div style="font-size:22px;font-weight:700;letter-spacing:-0.4px;margin-bottom:5px">Tempo Intervals</div>
           <div style="font-size:13px;color:var(--text-secondary);line-height:1.5">
@@ -1588,7 +1588,7 @@
       <div class="label" style="margin-bottom:var(--sp-sm)">This Month</div>
       <div class="stat-row" style="margin-bottom:var(--sp-md)">
         <div class="stat-pill">
-          <div class="sv">142<sub>km</sub></div>
+          <div class="sv"><span data-km="142" data-format="num">142</span><sub data-unit="dist-label">km</sub></div>
           <div class="sl">Volume</div>
           <div class="st st-up">↑ 12%</div>
         </div>
@@ -1598,7 +1598,7 @@
           <div class="st st-up">↑ 2</div>
         </div>
         <div class="stat-pill">
-          <div class="sv" style="font-size:18px">5:38</div>
+          <div class="sv" style="font-size:18px"><span data-pace-sec="338" data-format="num">5:38</span><sub style="font-size:10px" data-unit="pace-label">/km</sub></div>
           <div class="sl">Avg Pace</div>
           <div class="st st-up">↓ 4s</div>
         </div>
@@ -1608,7 +1608,7 @@
       <div class="spark-card" style="margin-bottom:var(--sp-md)">
         <div class="spark-head">
           <div class="label">Weekly Volume</div>
-          <div class="spark-trend st-up">18 km this week</div>
+          <div class="spark-trend st-up"><span data-km="18">18 km</span> this week</div>
         </div>
         <svg class="spark-svg" id="spark-volume"></svg>
         <div class="spark-footer">
@@ -1625,8 +1625,8 @@
         </div>
         <svg class="spark-svg" id="spark-pace"></svg>
         <div class="spark-footer">
-          <span>5:50 /km</span>
-          <span>5:36 /km</span>
+          <span data-pace-sec="350">5:50 /km</span>
+          <span data-pace-sec="336">5:36 /km</span>
         </div>
       </div>
 
@@ -2278,12 +2278,44 @@
   }
 
   // ─── UNITS TOGGLE ───────────────────────────────
+  function applyUnits() {
+    const mi = loadData().settings?.units === 'mi';
+
+    document.querySelectorAll('[data-unit="dist-label"]').forEach(el => {
+      el.textContent = mi ? 'mi' : 'km';
+    });
+    document.querySelectorAll('[data-unit="pace-label"]').forEach(el => {
+      el.textContent = mi ? '/mi' : '/km';
+    });
+    document.querySelectorAll('[data-km]').forEach(el => {
+      const km = parseFloat(el.dataset.km);
+      const fmt = el.dataset.format || 'full';
+      const val = mi ? km * 0.621371 : km;
+      const num = val < 10 ? parseFloat(val.toFixed(1)) : Math.round(val);
+      if (fmt === 'num')    el.textContent = num;
+      else if (fmt === 'approx') el.textContent = `~${num} ${mi ? 'mi' : 'km'}`;
+      else                  el.textContent = `${num} ${mi ? 'mi' : 'km'}`;
+    });
+    document.querySelectorAll('[data-pace-sec]').forEach(el => {
+      const raw = parseInt(el.dataset.paceSec);
+      const fmt = el.dataset.format || 'full';
+      const sec = mi ? Math.round(raw * 1.60934) : raw;
+      const m = Math.floor(sec / 60);
+      const s = String(sec % 60).padStart(2, '0');
+      if (fmt === 'num') el.textContent = `${m}:${s}`;
+      else               el.textContent = `${m}:${s} ${mi ? '/mi' : '/km'}`;
+    });
+    const paceEl = document.getElementById('pref-pace');
+    if (paceEl) paceEl.textContent = mi ? 'min/mi ›' : 'min/km ›';
+  }
+
   function setUnits(unit) {
     document.getElementById('unit-km').classList.toggle('active', unit === 'km');
     document.getElementById('unit-mi').classList.toggle('active', unit === 'mi');
     const data = loadData();
     data.settings.units = unit;
     saveData(data);
+    applyUnits();
   }
 
   function initUnits() {
@@ -2417,6 +2449,7 @@
     initWeekStrip();
     initPlanDays();
     initUnits();
+    applyUnits();
     initFocus();
     initInstallPrompt();
     initProgress();
