@@ -1104,6 +1104,206 @@
     }
 
     /* =============================================
+       WORKOUT OVERVIEW (strength panel)
+       ============================================= */
+    .strength-session-tabs {
+      display: flex; gap: 3px;
+      background: var(--bg-elevated);
+      border-radius: var(--r-md);
+      padding: 3px;
+      margin-bottom: var(--sp-md);
+    }
+    .str-tab {
+      flex: 1; text-align: center;
+      padding: 7px 0;
+      border-radius: calc(var(--r-md) - 2px);
+      font-size: 13px; font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer; user-select: none;
+      transition: all 0.15s;
+    }
+    .str-tab.active {
+      background: var(--bg-card);
+      color: var(--c-strength);
+      border: 1px solid rgba(201,165,90,0.3);
+    }
+    .wo-title { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 4px; }
+    .wo-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: var(--sp-sm); }
+    .wo-equipment { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: var(--sp-md); }
+    .equip-pill {
+      font-size: 11px; font-weight: 600;
+      background: var(--bg-elevated); border: 1px solid var(--border);
+      color: var(--text-secondary);
+      padding: 3px 9px; border-radius: var(--r-pill);
+    }
+    .wp {
+      margin-bottom: 10px;
+      border-radius: var(--r-md); overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .wp-hd {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 12px;
+      background: var(--bg-elevated);
+      border-bottom: 1px solid var(--border);
+    }
+    .wp-label { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--text-secondary); flex: 1; }
+    .wp-badge-rep {
+      font-size: 10px; font-weight: 700;
+      background: var(--amber-dim); color: var(--amber);
+      border: 1px solid rgba(201,165,90,0.25);
+      padding: 2px 7px; border-radius: var(--r-pill);
+    }
+    .wp-badge-ss {
+      font-size: 10px; font-weight: 700;
+      background: rgba(160,126,184,0.15); color: var(--c-mobility);
+      border: 1px solid rgba(160,126,184,0.25);
+      padding: 2px 7px; border-radius: var(--r-pill);
+    }
+    .wp-move {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 12px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .wp-move:last-child { border-bottom: none; }
+    .wp-move:active { background: var(--bg-elevated); }
+    .wp-emoji { font-size: 22px; width: 34px; text-align: center; flex-shrink: 0; }
+    .wp-move-info { flex: 1; min-width: 0; }
+    .wp-move-name { font-size: 14px; font-weight: 600; margin-bottom: 1px; }
+    .wp-move-rx { font-size: 12px; color: var(--text-secondary); }
+    .wp-move-last { font-size: 11px; color: var(--accent); margin-top: 2px; }
+
+    /* =============================================
+       ACTIVE SESSION OVERLAY
+       ============================================= */
+    #session-overlay {
+      position: fixed; inset: 0;
+      background: var(--bg-app);
+      z-index: 200;
+      display: none; flex-direction: column;
+    }
+    #session-overlay.active { display: flex; }
+
+    .so-header {
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: calc(var(--safe-top) + 10px) var(--sp-md) 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .so-timer {
+      font-size: 26px; font-weight: 700; letter-spacing: -0.5px;
+      font-variant-numeric: tabular-nums; color: var(--c-strength);
+    }
+    .so-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+    .so-progress-bar { height: 3px; background: var(--border); flex-shrink: 0; }
+    .so-progress-fill { height: 100%; background: var(--c-strength); transition: width 0.4s ease; }
+
+    .so-body {
+      flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+      padding: var(--sp-md);
+      padding-bottom: calc(80px + var(--safe-bottom));
+      scrollbar-width: none;
+    }
+    .so-body::-webkit-scrollbar { display: none; }
+
+    .so-part-hd {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: var(--sp-md);
+    }
+    .so-part-name { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--text-tertiary); }
+    .so-set-status { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+
+    .so-anim-wrap {
+      width: 100%; aspect-ratio: 16/10;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 72px; cursor: pointer; position: relative; overflow: hidden;
+      margin-bottom: var(--sp-md); flex-shrink: 0;
+    }
+    .so-anim-wrap img { width: 100%; height: 100%; object-fit: contain; }
+    .so-anim-hint {
+      position: absolute; bottom: 8px; right: 8px;
+      font-size: 10px; font-weight: 600; color: var(--text-tertiary);
+      background: rgba(25,25,28,0.85);
+      padding: 3px 8px; border-radius: var(--r-pill);
+      border: 1px solid var(--border);
+    }
+    .so-mov-name { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; margin-bottom: 4px; }
+    .so-mov-rx { font-size: 14px; color: var(--text-secondary); margin-bottom: var(--sp-md); }
+
+    .so-set-dots { display: flex; gap: 8px; align-items: center; margin-bottom: var(--sp-md); }
+    .so-dot {
+      width: 34px; height: 34px; border-radius: var(--r-pill);
+      border: 2px solid var(--border); background: var(--bg-elevated);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: var(--text-tertiary);
+      cursor: pointer; transition: all 0.15s; user-select: none;
+    }
+    .so-dot.cur { border-color: var(--c-strength); color: var(--c-strength); background: rgba(201,165,90,0.1); }
+    .so-dot.done { background: var(--c-strength); border-color: var(--c-strength); color: #1a0d00; }
+
+    .so-countdown-wrap { text-align: center; padding: var(--sp-sm) 0 var(--sp-md); }
+    .so-countdown {
+      font-size: 72px; font-weight: 700; letter-spacing: -3px;
+      color: var(--c-strength); font-variant-numeric: tabular-nums; line-height: 1;
+    }
+    .so-countdown.running { color: var(--accent); }
+    .so-countdown-side { font-size: 13px; color: var(--text-tertiary); margin-top: 4px; }
+    .so-timer-btns { display: flex; gap: var(--sp-sm); margin-top: var(--sp-md); }
+
+    .so-weight-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--r-md); padding: 12px var(--sp-md);
+      margin-bottom: var(--sp-sm);
+    }
+    .so-weight-prev { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+    .so-weight-prev strong { color: var(--accent); }
+    .so-weight-inputs { display: flex; gap: var(--sp-sm); }
+    .so-weight-field { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+    .so-weight-field label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-tertiary); }
+    .so-w-input {
+      background: var(--bg-elevated); border: 1.5px solid var(--border-strong);
+      border-radius: var(--r-sm); color: var(--text-primary);
+      font-family: var(--font); font-size: 18px; font-weight: 700;
+      text-align: center; padding: 8px 4px; width: 100%;
+    }
+    .so-w-input:focus { outline: none; border-color: var(--c-strength); }
+
+    .so-rest-banner {
+      display: flex; align-items: center; gap: var(--sp-sm);
+      background: rgba(201,165,90,0.07); border: 1px solid rgba(201,165,90,0.18);
+      border-radius: var(--r-md); padding: 10px var(--sp-md);
+      font-size: 13px; color: var(--amber); font-weight: 500;
+      margin-bottom: var(--sp-sm);
+    }
+
+    .so-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      padding: var(--sp-sm) var(--sp-md);
+      padding-bottom: calc(var(--safe-bottom) + var(--sp-sm));
+      background: var(--bg-surface); border-top: 1px solid var(--border);
+      display: flex; gap: var(--sp-sm); z-index: 10;
+    }
+
+    /* Movement detail sheet — must sit above session overlay (z-index 200) */
+    #sheet-mov-detail { z-index: 300; }
+    #sheet-mov-detail .sheet { max-height: 88dvh; overflow-y: auto; }
+    .mov-detail-anim {
+      width: 100%; aspect-ratio: 4/3;
+      background: var(--bg-card); border-radius: var(--r-md);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 80px; margin-bottom: var(--sp-md);
+    }
+    .mov-detail-name { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+    .mov-detail-cues { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: var(--sp-md); border-bottom: 1px solid var(--border); padding-bottom: var(--sp-md); }
+    .tip-item { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+    .tip-item:last-child { border-bottom: none; }
+    .tip-num { flex-shrink: 0; width: 22px; height: 22px; border-radius: var(--r-pill); background: var(--accent-dim); color: var(--accent); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+
+    /* =============================================
        iOS INSTALL BANNER
        ============================================= */
     .install-banner {
@@ -1514,72 +1714,14 @@
 
       <!-- ── STRENGTH PANEL ── -->
       <div class="train-panel" id="panel-strength">
-        <div style="margin-bottom:var(--sp-md)">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-sm)">
-            <span class="badge badge-strength">Runner Strength A</span>
-            <span style="font-size:12px;color:var(--text-secondary)">50 min · Beginner</span>
-          </div>
-          <div style="font-size:22px;font-weight:700;letter-spacing:-0.4px;margin-bottom:5px">Posterior Chain + Core</div>
-          <div style="font-size:13px;color:var(--text-secondary);line-height:1.5">
-            Runner-focused: glutes, hamstrings, single-leg stability, anti-rotation core. Complements bouldering — no competing grip/shoulder load.
-          </div>
+        <div class="strength-session-tabs">
+          <div class="str-tab active" id="str-tab-a" onclick="selectStrengthSession('A',this)">Session A</div>
+          <div class="str-tab" id="str-tab-b" onclick="selectStrengthSession('B',this)">Session B</div>
         </div>
-        <div class="label" style="margin-bottom:var(--sp-sm)">Movements</div>
-        <div class="movement-list" style="margin-bottom:var(--sp-md)">
-          <div class="movement-item" onclick="toggleMovement(this)">
-            <div class="mov-thumb">🦵</div>
-            <div class="mov-info">
-              <div class="mn">Goblet Squat</div>
-              <div class="mrx">3 × 12 reps · moderate load · full depth</div>
-            </div>
-            <div class="mov-check"></div>
-          </div>
-          <div class="movement-item" onclick="toggleMovement(this)">
-            <div class="mov-thumb">🍑</div>
-            <div class="mov-info">
-              <div class="mn">Romanian Deadlift</div>
-              <div class="mrx">3 × 10 reps · slow 3-sec eccentric</div>
-            </div>
-            <div class="mov-check"></div>
-          </div>
-          <div class="movement-item" onclick="toggleMovement(this)">
-            <div class="mov-thumb">🧘</div>
-            <div class="mov-info">
-              <div class="mn">Copenhagen Plank</div>
-              <div class="mrx">3 × 20 sec each side · adductor + core</div>
-            </div>
-            <div class="mov-check"></div>
-          </div>
-          <div class="movement-item" onclick="toggleMovement(this)">
-            <div class="mov-thumb">🦶</div>
-            <div class="mov-info">
-              <div class="mn">Single-leg Calf Raise</div>
-              <div class="mrx">3 × 15 reps · slow and controlled · off a step</div>
-            </div>
-            <div class="mov-check"></div>
-          </div>
-          <div class="movement-item" onclick="toggleMovement(this)">
-            <div class="mov-thumb">⚡</div>
-            <div class="mov-info">
-              <div class="mn">Dead Bug</div>
-              <div class="mrx">3 × 10 each side · lower back stays flat</div>
-            </div>
-            <div class="mov-check"></div>
-          </div>
-          <div class="movement-item" onclick="toggleMovement(this)">
-            <div class="mov-thumb">🏋️</div>
-            <div class="mov-info">
-              <div class="mn">Bulgarian Split Squat</div>
-              <div class="mrx">3 × 8 each leg · bodyweight to start</div>
-            </div>
-            <div class="mov-check"></div>
-          </div>
+        <div id="strength-overview">
+          <!-- rendered by renderWorkoutOverview() -->
+          <div style="text-align:center;padding:40px 0;color:var(--text-tertiary);font-size:13px">Loading workout…</div>
         </div>
-        <button class="btn btn-primary btn-full" style="margin-bottom:var(--sp-sm)" onclick="requestWakeLock()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
-          Start Session
-        </button>
-        <button class="btn btn-secondary btn-full" onclick="showView('log')">Log Manually Instead</button>
       </div>
 
       <!-- ── MOBILITY PANEL ── -->
@@ -2086,6 +2228,31 @@
   </div>
 </div>
 
+<!-- ══════════════ ACTIVE SESSION OVERLAY ══════════════ -->
+<div id="session-overlay">
+  <div class="so-header">
+    <div class="so-timer" id="so-timer">0:00</div>
+    <div class="so-label" id="so-workout-label">Runner Strength A</div>
+    <button class="icon-btn" onclick="endSession()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="so-progress-bar"><div class="so-progress-fill" id="so-progress" style="width:0%"></div></div>
+  <div class="so-body" id="so-body"><!-- rendered --></div>
+  <div class="so-nav">
+    <button class="btn btn-secondary" style="min-width:72px" onclick="prevStep()">← Back</button>
+    <button class="btn btn-primary btn-full" id="so-next-btn" onclick="nextStep()">Next →</button>
+  </div>
+</div>
+
+<!-- Movement detail sheet -->
+<div class="overlay" id="sheet-mov-detail" onclick="closeMovDetail()">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div id="mov-detail-content"></div>
+  </div>
+</div>
+
 <script>
   // ─── VIEW MANAGEMENT ────────────────────────────
   const VIEW_ORDER = ['today', 'plan', 'train', 'progress', 'profile'];
@@ -2501,6 +2668,7 @@
     document.querySelectorAll('.train-panel').forEach(p => p.classList.remove('active'));
     el.classList.add('active');
     document.getElementById('panel-' + type).classList.add('active');
+    if (type === 'strength') initStrength();
   }
 
   function goToSession(type) {
@@ -2868,6 +3036,523 @@
     });
   }
 
+  // ═══════════════════════════════════════════════
+  // MOVEMENT CATALOG
+  // ═══════════════════════════════════════════════
+  const MOVEMENTS = [
+    // POSTERIOR CHAIN / HIP HINGE
+    { id:'rdl',          name:'Romanian Deadlift',     emoji:'🏋️', cat:'posterior',  type:'reps', equip:'dumbbell',    sets:3, reps:10, rest:90,  boulderSafe:true, injExclude:['lower-back'], cues:'Push hips back — not down. Keep your back flat and feel the stretch through your hamstrings before driving back up.', tips:['Slow 3-sec lowering phase builds more strength than going fast','Keep the weights close to your legs throughout the movement','Stop when you feel a good hamstring stretch — you don\'t need to touch the floor'] },
+    { id:'kb-deadlift',  name:'Kettlebell Deadlift',   emoji:'⚫', cat:'posterior',  type:'reps', equip:'kettlebell',  sets:3, reps:12, rest:90,  boulderSafe:true, injExclude:['lower-back'], cues:'Hinge at the hips, brace your core, drive through your heels to stand tall. Bell stays between feet.', tips:['Great starting point for learning the hip hinge pattern','Shoulders should be slightly in front of the bell at the start'] },
+    { id:'good-morning', name:'Good Morning',          emoji:'🌅', cat:'posterior',  type:'reps', equip:'bodyweight',  sets:3, reps:12, rest:60,  boulderSafe:true, injExclude:['lower-back'], cues:'Soft knee bend, hinge forward until your hamstrings are fully loaded, then drive back up to standing.', tips:['Think "bow" not "bend" — hips go back, not down','Bodyweight only until you\'re very comfortable with the movement'] },
+    // GLUTE / HIP THRUST
+    { id:'hip-thrust',   name:'Hip Thrust',            emoji:'🍑', cat:'hip-thrust', type:'reps', equip:'bench',       sets:3, reps:12, rest:90,  boulderSafe:true, injExclude:['hip'],         cues:'Upper back on bench, feet flat on floor, drive through your heels and squeeze your glutes hard at the top.', tips:['Tuck your chin slightly to keep your spine neutral','Get full hip extension at the top — don\'t cut it short'] },
+    { id:'glute-bridge', name:'Glute Bridge',          emoji:'🌉', cat:'hip-thrust', type:'reps', equip:'bodyweight',  sets:3, reps:15, rest:60,  boulderSafe:true, injExclude:[],              cues:'Flat on your back, heels close to glutes, drive hips straight up and squeeze hard at the top.', tips:['Add a dumbbell across your hips when bodyweight feels easy','Pause 1 second at the top for more glute activation'] },
+    // SINGLE-LEG
+    { id:'bss',          name:'Bulgarian Split Squat', emoji:'🦵', cat:'single-leg', type:'reps', equip:'bench',       sets:3, reps:8,  rest:120, boulderSafe:true, injExclude:['knee','hip'],  cues:'Rear foot on bench, front foot far forward so your shin stays vertical at the bottom. Drop straight down.', tips:['Bodyweight only until your form is completely solid','Most of your weight should stay on the front foot'] },
+    { id:'sl-rdl',       name:'Single-leg RDL',        emoji:'🦩', cat:'single-leg', type:'reps', equip:'dumbbell',    sets:3, reps:8,  rest:90,  boulderSafe:true, injExclude:['ankle','knee'], cues:'Stand on one leg, hinge forward with a flat back — dumbbell hangs straight down. Feel the hamstring load.', tips:['Fix your gaze on a fixed point for balance','Start light — control and stability beat load here'] },
+    { id:'step-up',      name:'Step-up',               emoji:'🪜', cat:'single-leg', type:'reps', equip:'bench',       sets:3, reps:10, rest:90,  boulderSafe:true, injExclude:['knee','ankle'], cues:'Step up driving through the heel on the box, lower the trailing foot slowly under full control.', tips:['Don\'t push off with the trailing foot — all work goes through the working leg','Add dumbbells once bodyweight feels easy'] },
+    { id:'rev-lunge',    name:'Reverse Lunge',         emoji:'↩️', cat:'single-leg', type:'reps', equip:'bodyweight',  sets:3, reps:10, rest:60,  boulderSafe:true, injExclude:['knee'],         cues:'Step back, lower your rear knee toward the floor, keep your front shin vertical and chest tall.', tips:['Less knee stress than a forward lunge — good starting point','Add dumbbells or a goblet hold to progress'] },
+    // QUAD
+    { id:'goblet-squat', name:'Goblet Squat',          emoji:'🏆', cat:'quad',       type:'reps', equip:'dumbbell',    sets:3, reps:12, rest:90,  boulderSafe:true, injExclude:['knee'],         cues:'Hold dumbbell at chest, feet shoulder-width, squat to full depth — elbows track inside your knees.', tips:['Full depth — sit all the way into it','Elbows inside knees helps drive your knees out and protects them'] },
+    { id:'box-squat',    name:'Box Squat',             emoji:'📦', cat:'quad',       type:'reps', equip:'bench',       sets:3, reps:10, rest:90,  boulderSafe:true, injExclude:['knee'],         cues:'Sit back to the box under control, pause briefly without collapsing, then drive through your heels to stand.', tips:['Teaches the sit-back squat pattern well','Chest stays tall — don\'t let it cave forward'] },
+    // POWER / PLYOMETRIC
+    { id:'box-jump',     name:'Box Jump',              emoji:'🦘', cat:'power',      type:'reps', equip:'box',         sets:3, reps:5,  rest:120, boulderSafe:true, injExclude:['knee','ankle'], cues:'Load your hips, swing your arms, explode upward — land softly with bent knees on the box.', tips:['Quality over quantity — 5 fully maximal jumps beats 10 sloppy ones','Always step down, never jump down, to protect your ankles'] },
+    { id:'jump-squat',   name:'Jump Squat',            emoji:'⬆️', cat:'power',      type:'reps', equip:'bodyweight',  sets:3, reps:6,  rest:90,  boulderSafe:true, injExclude:['knee','ankle'], cues:'Squat to roughly parallel, then explode straight up as fast as possible. Land quietly with soft bent knees.', tips:['Arm swing generates power — let them drive up as you jump','Focus on the landing as much as the jump — quiet = safe'] },
+    { id:'broad-jump',   name:'Broad Jump',            emoji:'🏃', cat:'power',      type:'reps', equip:'bodyweight',  sets:3, reps:5,  rest:90,  boulderSafe:true, injExclude:['knee','ankle'], cues:'Load your hips and jump forward as far as possible — stick the landing and hold for two full seconds.', tips:['Great transfer to running power and stride length','Holding the landing builds single-stance stability critical for running'] },
+    // CORE
+    { id:'dead-bug',     name:'Dead Bug',              emoji:'🐛', cat:'core',       type:'reps', equip:'bodyweight',  sets:3, reps:10, rest:45,  boulderSafe:true, injExclude:['lower-back'],  cues:'Flatten your lower back to the floor. Extend opposite arm and leg, breathing out as you lower them.', tips:['Your lower back must stay pressed flat the entire time — this is the whole point','Slow and controlled beats fast — speed kills the anti-rotation benefit'] },
+    { id:'cop-plank',    name:'Copenhagen Plank',      emoji:'🧗', cat:'core',       type:'time', equip:'bench',       sets:3, dur:20,  rest:45,  sides:true, boulderSafe:true, injExclude:['hip'], cues:'Top leg on bench, bottom leg raised, hold a strong side-plank position — brace everything.', tips:['One of the best adductor and lateral core exercises for runners','Build from 10 seconds each side if needed — quality over duration'] },
+    { id:'bird-dog',     name:'Bird Dog',              emoji:'🐕', cat:'core',       type:'reps', equip:'bodyweight',  sets:3, reps:10, rest:45,  boulderSafe:true, injExclude:[],              cues:'On hands and knees, extend opposite arm and leg simultaneously — keep your hips perfectly level throughout.', tips:['Think long rather than high — reach out, not up','Squeeze the glute of the extended leg for extra hip stability'] },
+    { id:'hollow-hold',  name:'Hollow Hold',           emoji:'🌒', cat:'core',       type:'time', equip:'bodyweight',  sets:3, dur:20,  rest:45,  boulderSafe:true, injExclude:[],              cues:'Lower back pressed to floor, arms overhead, legs extended and low — hold this dish shape and breathe.', tips:['Bend your knees if the full version is too hard at first','Keep breathing — holding your breath defeats the purpose'] },
+    { id:'side-plank',   name:'Side Plank',            emoji:'📐', cat:'core',       type:'time', equip:'bodyweight',  sets:3, dur:30,  rest:45,  sides:true, boulderSafe:true, injExclude:[],  cues:'Elbow directly under shoulder, body in one straight line, lift your hips as high as you can.', tips:['Stagger your feet for more stability when starting out','Add hip dips — lowering and lifting your hips — to increase difficulty'] },
+    // CALF / LOWER LEG
+    { id:'sl-calf',      name:'Single-leg Calf Raise', emoji:'🦶', cat:'calf',       type:'reps', equip:'step',        sets:3, reps:15, rest:45,  boulderSafe:true, injExclude:['ankle','plantar'], cues:'Stand on step edge, lower your heel fully below the step, then rise all the way onto your toes. Slow and controlled.', tips:['Full range of motion from below the step matters most for strength gains','A slight knee bend targets the soleus — mix it up across sets'] },
+    { id:'tib-raise',    name:'Tibialis Raise',        emoji:'🦴', cat:'calf',       type:'reps', equip:'bodyweight',  sets:3, reps:15, rest:45,  boulderSafe:true, injExclude:['shin'],         cues:'Back against a wall, heels out about 30cm, lift your toes up as high as possible repeatedly.', tips:['Criminally underrated for shin splint and stress fracture prevention','Slow and deliberate — this is not a speed exercise'] },
+  ];
+
+  // ═══════════════════════════════════════════════
+  // WORKOUT GENERATOR
+  // ═══════════════════════════════════════════════
+  let _currentWorkout = null;
+  let _currentSessionType = 'A';
+
+  function generateWorkout(sessionType) {
+    const data = loadData();
+    const s = data.settings || {};
+    const injParts = s.injured ? (s.injuryParts || []) : [];
+
+    function avail(id) {
+      const m = MOVEMENTS.find(m => m.id === id);
+      return !!(m && !m.injExclude.some(e => injParts.includes(e)));
+    }
+    function pickFrom(...ids) {
+      const pool = ids.filter(avail);
+      if (!pool.length) return null;
+      return MOVEMENTS.find(m => m.id === pool[Math.floor(Math.random() * pool.length)]);
+    }
+
+    let parts = [];
+
+    if (sessionType === 'A') {
+      const hinge     = pickFrom('rdl', 'kb-deadlift', 'good-morning');
+      const glute     = pickFrom('hip-thrust', 'glute-bridge');
+      const singleLeg = pickFrom('bss', 'sl-rdl', 'step-up', 'rev-lunge');
+      const core1     = pickFrom('dead-bug', 'bird-dog', 'hollow-hold');
+      const core2     = pickFrom('cop-plank', 'side-plank');
+      const calf      = pickFrom('sl-calf', 'tib-raise');
+
+      if (hinge)
+        parts.push({ label:'Part 1', sets:hinge.sets, rest:hinge.rest, superset:false, moves:[hinge] });
+      if (glute)
+        parts.push({ label:'Part 2', sets:glute.sets, rest:glute.rest, superset:false, moves:[glute] });
+      if (singleLeg && core1)
+        parts.push({ label:'Part 3', sets:3, rest:120, superset:true, moves:[singleLeg, core1] });
+      else if (singleLeg)
+        parts.push({ label:'Part 3', sets:singleLeg.sets, rest:singleLeg.rest, superset:false, moves:[singleLeg] });
+      const finMoves = [calf, core2].filter(Boolean);
+      if (finMoves.length)
+        parts.push({ label:'Finisher', sets:2, rest:45, superset:finMoves.length > 1, moves:finMoves });
+
+    } else {
+      const power     = pickFrom('box-jump', 'jump-squat', 'broad-jump');
+      const quad      = pickFrom('goblet-squat', 'box-squat');
+      const singleLeg = pickFrom('bss', 'step-up', 'rev-lunge');
+      const posterior = pickFrom('rdl', 'kb-deadlift');
+      const core      = pickFrom('dead-bug', 'bird-dog', 'hollow-hold', 'side-plank');
+      const calf      = pickFrom('sl-calf', 'tib-raise');
+
+      if (power)
+        parts.push({ label:'Power', sets:power.sets, rest:power.rest, superset:false, moves:[power] });
+      if (quad)
+        parts.push({ label:'Part 1', sets:quad.sets, rest:quad.rest, superset:false, moves:[quad] });
+      if (singleLeg && core)
+        parts.push({ label:'Part 2', sets:3, rest:90, superset:true, moves:[singleLeg, core] });
+      if (posterior)
+        parts.push({ label:'Part 3', sets:posterior.sets, rest:posterior.rest, superset:false, moves:[posterior] });
+      if (calf)
+        parts.push({ label:'Finisher', sets:2, rest:45, superset:false, moves:[calf] });
+    }
+
+    const allEquip = [...new Set(parts.flatMap(p => p.moves.map(m => m.equip)).filter(e => e !== 'bodyweight'))];
+    const estMin = parts.reduce((n, p) => n + (p.sets * p.moves.length * 2) + Math.ceil(p.sets * p.rest / 60), 0);
+
+    return {
+      name: `Runner Strength ${sessionType}`,
+      sessionType,
+      focus: sessionType === 'A' ? 'Posterior Chain · Glutes · Core' : 'Power · Quad · Single-leg',
+      equipment: allEquip,
+      estMin: Math.max(35, Math.min(estMin, 60)),
+      parts,
+    };
+  }
+
+  // ═══════════════════════════════════════════════
+  // WEIGHT HISTORY
+  // ═══════════════════════════════════════════════
+  const WLOG_KEY = 'tbf-weights';
+
+  function getLastWeight(movId) {
+    try {
+      const log = JSON.parse(localStorage.getItem(WLOG_KEY) || '{}');
+      const entries = log[movId] || [];
+      return entries[entries.length - 1] || null;
+    } catch { return null; }
+  }
+
+  function saveWeightLog(movId, weight, reps) {
+    try {
+      const log = JSON.parse(localStorage.getItem(WLOG_KEY) || '{}');
+      if (!log[movId]) log[movId] = [];
+      log[movId].push({ date: new Date().toISOString(), weight, reps });
+      if (log[movId].length > 30) log[movId] = log[movId].slice(-30);
+      localStorage.setItem(WLOG_KEY, JSON.stringify(log));
+    } catch(e) { console.warn('Weight log full', e); }
+  }
+
+  // ═══════════════════════════════════════════════
+  // WORKOUT OVERVIEW
+  // ═══════════════════════════════════════════════
+  function selectStrengthSession(type, el) {
+    _currentSessionType = type;
+    document.querySelectorAll('.str-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    renderWorkoutOverview();
+  }
+
+  function fmtRx(mov, part) {
+    if (mov.type === 'time') {
+      const d = mov.dur || 20;
+      return `${part.sets} × ${d}s${mov.sides ? ' each side' : ''}`;
+    }
+    return `${part.sets} × ${mov.reps || 10} reps`;
+  }
+
+  function fmtRest(secs) {
+    return secs >= 60 ? `${Math.round(secs / 60)} min` : `${secs}s`;
+  }
+
+  function renderWorkoutOverview() {
+    const wo = generateWorkout(_currentSessionType);
+    _currentWorkout = wo;
+    const units = loadData().settings?.units === 'mi' ? 'lb' : 'kg';
+
+    const equipHtml = wo.equipment.length
+      ? wo.equipment.map(e => `<span class="equip-pill">${e.charAt(0).toUpperCase()+e.slice(1)}</span>`).join('')
+      : '<span class="equip-pill">Bodyweight only</span>';
+
+    let partsHtml = '';
+    wo.parts.forEach(part => {
+      const ssBadge  = part.superset ? `<span class="wp-badge-ss">Superset</span>` : '';
+      const repBadge = `<span class="wp-badge-rep">×${part.sets}</span>`;
+      let movesHtml = '';
+      part.moves.forEach((mov, mi) => {
+        const last = getLastWeight(mov.id);
+        const lastHtml = last
+          ? `<div class="wp-move-last">Last: ${last.weight != null ? last.weight + units : 'BW'} · ${last.reps}${mov.type==='time'?'s':' reps'}</div>`
+          : '';
+        const arrow = part.superset && mi < part.moves.length - 1 ? ' · then →' : '';
+        movesHtml += `
+          <div class="wp-move" onclick="openMovDetail('${mov.id}')">
+            <div class="wp-emoji">${mov.emoji}</div>
+            <div class="wp-move-info">
+              <div class="wp-move-name">${mov.name}</div>
+              <div class="wp-move-rx">${fmtRx(mov, part)}${arrow}</div>
+              ${lastHtml}
+            </div>
+            <svg class="wp-move-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9,18 15,12 9,6"/></svg>
+          </div>`;
+      });
+      partsHtml += `
+        <div class="wp">
+          <div class="wp-hd">
+            <span class="wp-label">${part.label}</span>
+            ${ssBadge}${repBadge}
+          </div>
+          ${movesHtml}
+        </div>`;
+    });
+
+    document.getElementById('strength-overview').innerHTML = `
+      <div style="margin-bottom:var(--sp-md)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <span class="badge badge-strength">${wo.name}</span>
+          <span style="font-size:12px;color:var(--text-secondary)">~${wo.estMin} min</span>
+        </div>
+        <div class="wo-title">${wo.focus}</div>
+      </div>
+      <div class="wo-equipment">${equipHtml}</div>
+      ${partsHtml}
+      <button class="btn btn-primary btn-full" style="margin-bottom:var(--sp-sm);margin-top:var(--sp-sm)" onclick="startSession()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="margin-right:6px"><polygon points="5,3 19,12 5,21"/></svg>
+        Start Workout
+      </button>
+      <button class="btn btn-secondary btn-full" onclick="showView('log')">Log Manually Instead</button>
+    `;
+  }
+
+  function initStrength() {
+    const last = localStorage.getItem('tbf-last-strength') || 'B';
+    _currentSessionType = last === 'A' ? 'B' : 'A';
+    document.getElementById('str-tab-a')?.classList.toggle('active', _currentSessionType === 'A');
+    document.getElementById('str-tab-b')?.classList.toggle('active', _currentSessionType === 'B');
+    renderWorkoutOverview();
+  }
+
+  // ═══════════════════════════════════════════════
+  // ACTIVE SESSION
+  // ═══════════════════════════════════════════════
+  let SES = null;
+
+  function startSession() {
+    requestWakeLock();
+    const wo = _currentWorkout || generateWorkout(_currentSessionType);
+    SES = {
+      wo,
+      partIdx: 0, setIdx: 0, movIdx: 0, sideIdx: 0,
+      startTime: Date.now(),
+      sessionInterval: null,
+      countdownVal: 0,
+      countdownInterval: null,
+      countdownRunning: false,
+      weights: {},
+    };
+    document.getElementById('so-workout-label').textContent = wo.name;
+    document.getElementById('session-overlay').classList.add('active');
+    SES.sessionInterval = setInterval(_tickSession, 1000);
+    const firstMov = wo.parts[0].moves[0];
+    if (firstMov.type === 'time') SES.countdownVal = firstMov.dur || 20;
+    renderActiveStep();
+  }
+
+  function _tickSession() {
+    if (!SES) return;
+    const elapsed = Math.floor((Date.now() - SES.startTime) / 1000);
+    const m = Math.floor(elapsed / 60);
+    const s = String(elapsed % 60).padStart(2, '0');
+    const el = document.getElementById('so-timer');
+    if (el) el.textContent = `${m}:${s}`;
+  }
+
+  function _totalSteps() {
+    return SES.wo.parts.reduce((n, p) => n + p.sets * p.moves.length, 0);
+  }
+
+  function _stepIdx() {
+    let idx = 0;
+    for (let pi = 0; pi < SES.partIdx; pi++) {
+      const p = SES.wo.parts[pi];
+      idx += p.sets * p.moves.length;
+    }
+    const cp = SES.wo.parts[SES.partIdx];
+    idx += SES.setIdx * cp.moves.length + SES.movIdx;
+    return idx;
+  }
+
+  function updateSessionWeight(movId, field, val) {
+    if (!SES) return;
+    if (!SES.weights[movId]) SES.weights[movId] = {};
+    SES.weights[movId][field] = val;
+  }
+
+  function renderActiveStep() {
+    if (!SES) return;
+    const wo = SES.wo;
+    const part = wo.parts[SES.partIdx];
+    const mov = part.moves[SES.movIdx];
+    const isTimed = mov.type === 'time';
+    const hasSides = !!mov.sides;
+    const dur = mov.dur || 20;
+    const units = loadData().settings?.units === 'mi' ? 'lb' : 'kg';
+
+    // Progress bar
+    const prog = Math.round((_stepIdx() / _totalSteps()) * 100);
+    document.getElementById('so-progress').style.width = prog + '%';
+
+    // Finish or next label
+    const isLast = SES.partIdx === wo.parts.length - 1
+      && SES.setIdx === part.sets - 1
+      && SES.movIdx === part.moves.length - 1;
+    document.getElementById('so-next-btn').textContent = isLast ? 'Finish Workout ✓' : 'Next →';
+
+    // Part header
+    const partHd = `
+      <div class="so-part-hd">
+        <span class="so-part-name">${part.label}${part.superset ? ' · Superset' : ''}</span>
+        <span class="so-set-status">Set ${SES.setIdx + 1} of ${part.sets}</span>
+      </div>`;
+
+    // Animation area
+    const animArea = `
+      <div class="so-anim-wrap" onclick="openMovDetail('${mov.id}')">
+        <span>${mov.emoji}</span>
+        <span class="so-anim-hint">Tips &amp; cues</span>
+      </div>`;
+
+    // Name + rx
+    const rx = isTimed
+      ? `${dur}s${hasSides ? ' each side' : ''}`
+      : `${mov.reps || 10} reps`;
+    const movInfo = `
+      <div class="so-mov-name">${mov.name}</div>
+      <div class="so-mov-rx">${rx}</div>`;
+
+    // Set dots
+    let dots = '<div class="so-set-dots">';
+    for (let i = 0; i < part.sets; i++) {
+      const cls = i < SES.setIdx ? 'done' : i === SES.setIdx ? 'cur' : '';
+      dots += `<div class="so-dot ${cls}">${i + 1}</div>`;
+    }
+    dots += '</div>';
+
+    // Timer or weight input
+    let inputHtml = '';
+    if (isTimed) {
+      if (!SES.countdownRunning && SES.countdownVal <= 0) SES.countdownVal = dur;
+      const sideLabel = hasSides ? (SES.sideIdx === 0 ? 'Left side' : 'Right side') : '';
+      inputHtml = `
+        <div class="so-countdown-wrap">
+          <div class="so-countdown${SES.countdownRunning ? ' running' : ''}" id="so-countdown">${SES.countdownVal}</div>
+          ${sideLabel ? `<div class="so-countdown-side">${sideLabel}</div>` : ''}
+          <div class="so-timer-btns">
+            <button class="btn btn-${SES.countdownRunning ? 'secondary' : 'primary'} btn-full" onclick="toggleCountdown()">
+              ${SES.countdownRunning ? '⏸ Pause' : '▶ Start Timer'}
+            </button>
+          </div>
+        </div>`;
+    } else {
+      const last = getLastWeight(mov.id);
+      const sw = SES.weights[mov.id]?.weight ?? (last?.weight ?? '');
+      const sr = SES.weights[mov.id]?.reps   ?? (mov.reps || '');
+      const prevText = last
+        ? `Last session: <strong>${last.weight != null ? last.weight + units : 'Bodyweight'} · ${last.reps || ''}${mov.type==='time'?'s':' reps'}</strong>`
+        : 'No previous data — set your starting weight';
+      inputHtml = `
+        <div class="so-weight-card">
+          <div class="so-weight-prev">${prevText}</div>
+          <div class="so-weight-inputs">
+            <div class="so-weight-field">
+              <label>Weight (${units})</label>
+              <input class="so-w-input" type="number" inputmode="decimal" placeholder="0"
+                value="${sw}" id="so-w-weight"
+                onchange="updateSessionWeight('${mov.id}','weight',this.value)">
+            </div>
+            <div class="so-weight-field">
+              <label>Reps</label>
+              <input class="so-w-input" type="number" inputmode="numeric" placeholder="${mov.reps||10}"
+                value="${sr}" id="so-w-reps"
+                onchange="updateSessionWeight('${mov.id}','reps',this.value)">
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // Rest banner (not on final step)
+    const showRest = !(SES.partIdx === wo.parts.length - 1 && SES.setIdx === part.sets - 1 && SES.movIdx === part.moves.length - 1);
+    const restHtml = showRest
+      ? `<div class="so-rest-banner">💤 Rest ~${fmtRest(part.rest)} recommended before next set</div>`
+      : '';
+
+    document.getElementById('so-body').innerHTML = partHd + animArea + movInfo + dots + inputHtml + restHtml;
+  }
+
+  // ─── COUNTDOWN ──────────────────────────────────
+  function toggleCountdown() {
+    if (!SES) return;
+    if (SES.countdownRunning) {
+      clearInterval(SES.countdownInterval);
+      SES.countdownRunning = false;
+      renderActiveStep();
+      return;
+    }
+    const mov = SES.wo.parts[SES.partIdx].moves[SES.movIdx];
+    if (SES.countdownVal <= 0) SES.countdownVal = mov.dur || 20;
+    SES.countdownRunning = true;
+    renderActiveStep();
+    SES.countdownInterval = setInterval(() => {
+      SES.countdownVal--;
+      const el = document.getElementById('so-countdown');
+      if (el) { el.textContent = SES.countdownVal; el.className = 'so-countdown running'; }
+      if (SES.countdownVal <= 0) {
+        clearInterval(SES.countdownInterval);
+        SES.countdownRunning = false;
+        const m = SES.wo.parts[SES.partIdx].moves[SES.movIdx];
+        if (m.sides && SES.sideIdx === 0) {
+          SES.sideIdx = 1;
+          SES.countdownVal = m.dur || 20;
+          renderActiveStep();
+        } else {
+          SES.sideIdx = 0;
+          _advanceStep();
+        }
+      }
+    }, 1000);
+  }
+
+  // ─── NAVIGATION ─────────────────────────────────
+  function _saveCurrentWeight() {
+    if (!SES) return;
+    const mov = SES.wo.parts[SES.partIdx].moves[SES.movIdx];
+    if (mov.type !== 'reps') return;
+    const w = parseFloat(document.getElementById('so-w-weight')?.value);
+    const r = parseInt(document.getElementById('so-w-reps')?.value) || mov.reps || 10;
+    saveWeightLog(mov.id, isNaN(w) ? null : w, r);
+  }
+
+  function nextStep() {
+    if (!SES) return;
+    _saveCurrentWeight();
+    clearInterval(SES.countdownInterval);
+    SES.countdownRunning = false;
+    SES.sideIdx = 0;
+    _advanceStep();
+  }
+
+  function _advanceStep() {
+    if (!SES) return;
+    const part = SES.wo.parts[SES.partIdx];
+    if (SES.movIdx < part.moves.length - 1) {
+      SES.movIdx++;
+    } else if (SES.setIdx < part.sets - 1) {
+      SES.movIdx = 0;
+      SES.setIdx++;
+    } else if (SES.partIdx < SES.wo.parts.length - 1) {
+      SES.partIdx++;
+      SES.setIdx = 0;
+      SES.movIdx = 0;
+    } else {
+      endSession();
+      return;
+    }
+    const newMov = SES.wo.parts[SES.partIdx].moves[SES.movIdx];
+    if (newMov.type === 'time') SES.countdownVal = newMov.dur || 20;
+    renderActiveStep();
+  }
+
+  function prevStep() {
+    if (!SES) return;
+    clearInterval(SES.countdownInterval);
+    SES.countdownRunning = false;
+    SES.sideIdx = 0;
+    const part = SES.wo.parts[SES.partIdx];
+    if (SES.movIdx > 0) {
+      SES.movIdx--;
+    } else if (SES.setIdx > 0) {
+      SES.movIdx = part.moves.length - 1;
+      SES.setIdx--;
+    } else if (SES.partIdx > 0) {
+      SES.partIdx--;
+      const pp = SES.wo.parts[SES.partIdx];
+      SES.setIdx = pp.sets - 1;
+      SES.movIdx = pp.moves.length - 1;
+    }
+    const newMov = SES.wo.parts[SES.partIdx].moves[SES.movIdx];
+    if (newMov.type === 'time') SES.countdownVal = newMov.dur || 20;
+    renderActiveStep();
+  }
+
+  function endSession() {
+    if (!SES) return;
+    clearInterval(SES.sessionInterval);
+    clearInterval(SES.countdownInterval);
+    localStorage.setItem('tbf-last-strength', SES.wo.sessionType);
+    SES = null;
+    document.getElementById('session-overlay').classList.remove('active');
+    if (typeof releaseWakeLock === 'function') releaseWakeLock();
+    renderWorkoutOverview();
+  }
+
+  // ─── MOVEMENT DETAIL ────────────────────────────
+  function openMovDetail(movId) {
+    const mov = MOVEMENTS.find(m => m.id === movId);
+    if (!mov) return;
+    const units = loadData().settings?.units === 'mi' ? 'lb' : 'kg';
+    const last = getLastWeight(movId);
+    const lastHtml = last
+      ? `<div style="margin-bottom:var(--sp-md)">
+           <div class="label" style="margin-bottom:6px">Last Session</div>
+           <div style="font-size:14px;color:var(--text-primary)">${last.weight != null ? last.weight + units : 'Bodyweight'} · ${last.reps || ''}${mov.type==='time'?'s':' reps'}</div>
+         </div>`
+      : '';
+    const tipsHtml = (mov.tips||[]).map((t,i) => `
+      <div class="tip-item">
+        <div class="tip-num">${i+1}</div>
+        <div>${t}</div>
+      </div>`).join('');
+
+    document.getElementById('mov-detail-content').innerHTML = `
+      <div class="mov-detail-anim">${mov.emoji}</div>
+      <div class="mov-detail-name">${mov.name}</div>
+      <div class="mov-detail-cues">${mov.cues}</div>
+      ${lastHtml}
+      <div class="label" style="margin-bottom:var(--sp-sm)">Tips</div>
+      <div class="mov-detail-tips">${tipsHtml}</div>
+      <button class="btn btn-secondary btn-full" style="margin-top:var(--sp-md)" onclick="closeMovDetail()">Return to Workout</button>
+    `;
+    openSheet('sheet-mov-detail');
+  }
+
+  function closeMovDetail() { closeSheet('sheet-mov-detail'); }
+
   // ─── INIT ───────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
     applySettings();
@@ -2881,6 +3566,7 @@
     initTrainDays();
     initLongRunDay();
     initInjury();
+    initStrength();
     initInstallPrompt();
     initProgress();
   });
