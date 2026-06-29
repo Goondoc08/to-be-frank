@@ -1015,6 +1015,94 @@
     .toggle input:checked + .toggle-track { background: var(--accent-dim); border-color: var(--accent); }
     .toggle input:checked + .toggle-track::before { transform: translateX(18px); background: var(--accent); }
 
+    /* Card internal divider with label */
+    .card-divider {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      padding-top: var(--sp-md);
+      border-top: 1px solid var(--border);
+      margin-top: var(--sp-md);
+      margin-bottom: var(--sp-sm);
+    }
+
+    /* Schedule block inside card */
+    .sched-block { padding-bottom: var(--sp-md); }
+    .sched-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    /* 7-day tap picker — shared by availability + long-run-day */
+    .day-picker, .lrd-picker {
+      display: flex;
+      gap: 5px;
+    }
+    .dp-day, .lrd-btn {
+      flex: 1;
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--r-pill);
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-tertiary);
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .dp-day:active, .lrd-btn:active { opacity: 0.7; }
+    .dp-day.on {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .lrd-btn.sel {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--text-on-accent);
+    }
+
+    /* Injury body-part grid */
+    .injury-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      padding-top: var(--sp-sm);
+    }
+    .injury-chip {
+      padding: 10px 4px;
+      border-radius: var(--r-md);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      text-align: center;
+      user-select: none;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .injury-chip:active { opacity: 0.7; }
+    .injury-chip.sel {
+      background: rgba(196, 92, 92, 0.15);
+      border-color: #c45c5c;
+      color: #c45c5c;
+    }
+    .injury-note {
+      margin-top: var(--sp-sm);
+      font-size: 12px;
+      color: var(--text-tertiary);
+      line-height: 1.4;
+    }
+
     /* =============================================
        iOS INSTALL BANNER
        ============================================= */
@@ -1706,18 +1794,64 @@
         </div>
       </div>
 
-      <!-- Training Profile -->
+      <!-- Training Setup -->
       <div class="settings-section">
-        <div class="label" style="margin-bottom:var(--sp-sm)">Training Profile</div>
+        <div class="label" style="margin-bottom:var(--sp-sm)">Training Setup</div>
         <div class="card card-p">
+
+          <!-- Approach -->
+          <div class="settings-row" style="cursor:default">
+            <div class="sr-info">
+              <div class="sr-title">Approach <span class="info-btn" onclick="showTip(this,'Maintain keeps your weekly load steady — good when life is busy or you\'re tapering before a race. Build progressively increases volume and intensity over an 8–12 week cycle.')">?</span></div>
+              <div class="sr-sub" id="approach-desc">Progressive overload, 8–12 week ramp</div>
+            </div>
+            <div class="seg-control">
+              <div class="seg-btn" id="approach-maintain" onclick="setApproach('maintain')">Maintain</div>
+              <div class="seg-btn active" id="approach-build" onclick="setApproach('build')">Build</div>
+            </div>
+          </div>
+
+          <!-- Weekly Run Target -->
           <div class="settings-row">
             <div class="sr-info"><div class="sr-title">Weekly Run Target</div></div>
             <div class="sr-val">— ›</div>
           </div>
+
+          <!-- Race Target -->
           <div class="settings-row" style="border-bottom:none">
             <div class="sr-info"><div class="sr-title">Race Target</div></div>
             <div class="sr-val link-sm" onclick="openSheet('sheet-race')">Add ›</div>
           </div>
+
+          <!-- Schedule sub-section -->
+          <div class="card-divider">Schedule</div>
+
+          <div class="sched-block">
+            <div class="sched-label">Available Training Days</div>
+            <div class="day-picker" id="avail-days">
+              <div class="dp-day on" data-day="mon" onclick="toggleTrainDay(this)">M</div>
+              <div class="dp-day on" data-day="tue" onclick="toggleTrainDay(this)">T</div>
+              <div class="dp-day on" data-day="wed" onclick="toggleTrainDay(this)">W</div>
+              <div class="dp-day on" data-day="thu" onclick="toggleTrainDay(this)">T</div>
+              <div class="dp-day on" data-day="fri" onclick="toggleTrainDay(this)">F</div>
+              <div class="dp-day on" data-day="sat" onclick="toggleTrainDay(this)">S</div>
+              <div class="dp-day" data-day="sun" onclick="toggleTrainDay(this)">S</div>
+            </div>
+          </div>
+
+          <div class="sched-block" style="padding-bottom:0">
+            <div class="sched-label">Long Run Day</div>
+            <div class="lrd-picker" id="long-run-picker">
+              <div class="lrd-btn" data-day="mon" onclick="setLongRunDay('mon')">M</div>
+              <div class="lrd-btn" data-day="tue" onclick="setLongRunDay('tue')">T</div>
+              <div class="lrd-btn" data-day="wed" onclick="setLongRunDay('wed')">W</div>
+              <div class="lrd-btn" data-day="thu" onclick="setLongRunDay('thu')">T</div>
+              <div class="lrd-btn" data-day="fri" onclick="setLongRunDay('fri')">F</div>
+              <div class="lrd-btn sel" data-day="sat" onclick="setLongRunDay('sat')">S</div>
+              <div class="lrd-btn" data-day="sun" onclick="setLongRunDay('sun')">S</div>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -1739,6 +1873,37 @@
         </div>
       </div>
 
+      <!-- Injury Adaptation -->
+      <div class="settings-section">
+        <div class="label" style="margin-bottom:var(--sp-sm)">Injury Adaptation</div>
+        <div class="card card-p">
+          <div class="settings-row" id="injury-toggle-row" style="border-bottom:none;cursor:default">
+            <div class="sr-info">
+              <div class="sr-title">Currently Injured</div>
+              <div class="sr-sub">Adapts sessions to protect recovery</div>
+            </div>
+            <label class="toggle" onclick="event.stopPropagation()">
+              <input type="checkbox" id="toggle-injured" onchange="toggleInjured(this.checked)">
+              <div class="toggle-track"></div>
+            </label>
+          </div>
+          <div id="injury-panel" style="display:none">
+            <div class="injury-grid">
+              <div class="injury-chip" data-part="knee"      onclick="selectInjury(this)">🦵 Knee</div>
+              <div class="injury-chip" data-part="hip"       onclick="selectInjury(this)">🍑 Hip</div>
+              <div class="injury-chip" data-part="ankle"     onclick="selectInjury(this)">🦶 Ankle</div>
+              <div class="injury-chip" data-part="calf"      onclick="selectInjury(this)">💪 Calf</div>
+              <div class="injury-chip" data-part="hamstring" onclick="selectInjury(this)">🏃 Hamstring</div>
+              <div class="injury-chip" data-part="it-band"   onclick="selectInjury(this)">⚡ IT Band</div>
+              <div class="injury-chip" data-part="shin"      onclick="selectInjury(this)">🦴 Shin</div>
+              <div class="injury-chip" data-part="plantar"   onclick="selectInjury(this)">🦶 Plantar</div>
+              <div class="injury-chip" data-part="lower-back" onclick="selectInjury(this)">🔙 Low Back</div>
+            </div>
+            <div class="injury-note">Sessions will avoid loading the affected area — reduced impact, adapted movements.</div>
+          </div>
+        </div>
+      </div>
+
       <!-- Preferences -->
       <div class="settings-section">
         <div class="label" style="margin-bottom:var(--sp-sm)">Preferences</div>
@@ -1750,12 +1915,12 @@
               <div class="seg-btn" id="unit-mi" onclick="setUnits('mi')">mi</div>
             </div>
           </div>
-          <div class="settings-row" onclick="toggleUnits()">
+          <div class="settings-row" style="cursor:default">
             <div class="sr-info">
               <div class="sr-title">Pace Format</div>
               <div class="sr-sub">Follows distance unit</div>
             </div>
-            <div class="sr-val" id="pref-pace">min/mi ›</div>
+            <div class="sr-val" id="pref-pace">min/mi</div>
           </div>
           <div class="settings-row" style="border-bottom:none;cursor:default">
             <div class="sr-info">
@@ -2363,7 +2528,14 @@
   }
 
   function defaultData() {
-    return { logs: [], plan: {}, raceTarget: null, settings: { units: 'mi', theme: 'dark' } };
+    return { logs: [], plan: {}, raceTarget: null, settings: {
+      units: 'mi', theme: 'dark',
+      approach: 'build',
+      trainDays: ['mon','tue','wed','thu','fri','sat'],
+      longRunDay: 'sat',
+      injured: false,
+      injuryParts: []
+    }};
   }
 
   // ─── SETTINGS ───────────────────────────────────
@@ -2376,7 +2548,7 @@
     const unitsEl = document.getElementById('pref-units');
     const paceEl  = document.getElementById('pref-pace');
     if (unitsEl) unitsEl.textContent = mi ? 'mi ›' : 'km ›';
-    if (paceEl)  paceEl.textContent  = mi ? 'min/mi ›' : 'min/km ›';
+    if (paceEl)  paceEl.textContent  = mi ? 'min/mi' : 'min/km';
 
     // Theme
     const dark = (s.theme || 'dark') === 'dark';
@@ -2466,7 +2638,7 @@
       else               el.textContent = `${m}:${s} ${mi ? '/mi' : '/km'}`;
     });
     const paceEl = document.getElementById('pref-pace');
-    if (paceEl) paceEl.textContent = mi ? 'min/mi ›' : 'min/km ›';
+    if (paceEl) paceEl.textContent = mi ? 'min/mi' : 'min/km';
   }
 
   function setUnits(unit) {
@@ -2505,6 +2677,95 @@
       const chip = document.querySelector(`.focus-chip[data-focus="${focus}"]`);
       if (chip) chip.classList.add('sel');
     }
+  }
+
+  // ─── TRAINING APPROACH ──────────────────────────
+  const APPROACH_DESCS = {
+    maintain: 'Steady load — protect current fitness',
+    build:    'Progressive overload, 8–12 week ramp'
+  };
+  function setApproach(mode) {
+    document.getElementById('approach-maintain').classList.toggle('active', mode === 'maintain');
+    document.getElementById('approach-build').classList.toggle('active', mode === 'build');
+    const desc = document.getElementById('approach-desc');
+    if (desc) desc.textContent = APPROACH_DESCS[mode] || '';
+    const data = loadData();
+    data.settings = data.settings || {};
+    data.settings.approach = mode;
+    saveData(data);
+  }
+  function initApproach() {
+    const data = loadData();
+    setApproach(data.settings?.approach || 'build');
+  }
+
+  // ─── AVAILABLE TRAINING DAYS ────────────────────
+  function toggleTrainDay(el) {
+    el.classList.toggle('on');
+    const days = Array.from(document.querySelectorAll('#avail-days .dp-day.on')).map(d => d.dataset.day);
+    const data = loadData();
+    data.settings = data.settings || {};
+    data.settings.trainDays = days;
+    saveData(data);
+  }
+  function initTrainDays() {
+    const data = loadData();
+    const days = data.settings?.trainDays ?? ['mon','tue','wed','thu','fri','sat'];
+    document.querySelectorAll('#avail-days .dp-day').forEach(el => {
+      el.classList.toggle('on', days.includes(el.dataset.day));
+    });
+  }
+
+  // ─── LONG RUN DAY ───────────────────────────────
+  function setLongRunDay(day) {
+    document.querySelectorAll('#long-run-picker .lrd-btn').forEach(b => {
+      b.classList.toggle('sel', b.dataset.day === day);
+    });
+    const data = loadData();
+    data.settings = data.settings || {};
+    data.settings.longRunDay = day;
+    saveData(data);
+  }
+  function initLongRunDay() {
+    const data = loadData();
+    setLongRunDay(data.settings?.longRunDay || 'sat');
+  }
+
+  // ─── INJURY ADAPTATION ──────────────────────────
+  function toggleInjured(checked) {
+    const panel = document.getElementById('injury-panel');
+    const row   = document.getElementById('injury-toggle-row');
+    if (panel) panel.style.display = checked ? 'block' : 'none';
+    if (row)   row.style.borderBottom = checked ? '1px solid var(--border)' : 'none';
+    const data = loadData();
+    data.settings = data.settings || {};
+    data.settings.injured = checked;
+    if (!checked) {
+      data.settings.injuryParts = [];
+      document.querySelectorAll('.injury-chip').forEach(c => c.classList.remove('sel'));
+    }
+    saveData(data);
+  }
+  function selectInjury(el) {
+    el.classList.toggle('sel');
+    const parts = Array.from(document.querySelectorAll('.injury-chip.sel')).map(c => c.dataset.part);
+    const data = loadData();
+    data.settings = data.settings || {};
+    data.settings.injuryParts = parts;
+    saveData(data);
+  }
+  function initInjury() {
+    const data = loadData();
+    const { injured = false, injuryParts = [] } = data.settings || {};
+    const toggle = document.getElementById('toggle-injured');
+    if (toggle) toggle.checked = injured;
+    const panel = document.getElementById('injury-panel');
+    const row   = document.getElementById('injury-toggle-row');
+    if (panel) panel.style.display = injured ? 'block' : 'none';
+    if (row)   row.style.borderBottom = injured ? '1px solid var(--border)' : 'none';
+    document.querySelectorAll('.injury-chip').forEach(c => {
+      c.classList.toggle('sel', injuryParts.includes(c.dataset.part));
+    });
   }
 
   // ─── INSTALL PROMPT (Android + iOS) ────────────
@@ -2616,6 +2877,10 @@
     initUnits();
     applyUnits();
     initFocus();
+    initApproach();
+    initTrainDays();
+    initLongRunDay();
+    initInjury();
     initInstallPrompt();
     initProgress();
   });
