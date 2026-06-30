@@ -1096,6 +1096,32 @@
       border-color: #c45c5c;
       color: #c45c5c;
     }
+    .str-focus-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--sp-sm);
+      padding: var(--sp-sm) 0 var(--sp-md);
+    }
+    .str-focus-btn {
+      background: var(--bg-elevated);
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .str-focus-btn:active { opacity: 0.7; }
+    .str-focus-btn.active {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+      font-weight: 600;
+    }
     .injury-note {
       margin-top: var(--sp-sm);
       font-size: 12px;
@@ -1965,6 +1991,15 @@
             <div class="sr-val link-sm" onclick="openSheet('sheet-race')">Add ›</div>
           </div>
 
+          <!-- Strength Focus sub-section -->
+          <div class="card-divider">Strength Focus</div>
+          <div class="str-focus-grid">
+            <div class="str-focus-btn active" data-sfocus="full"  onclick="setStrengthFocus('full')">Full Body</div>
+            <div class="str-focus-btn"        data-sfocus="lower" onclick="setStrengthFocus('lower')">Lower Body</div>
+            <div class="str-focus-btn"        data-sfocus="upper" onclick="setStrengthFocus('upper')">Upper Body</div>
+            <div class="str-focus-btn"        data-sfocus="core"  onclick="setStrengthFocus('core')">Core</div>
+          </div>
+
           <!-- Schedule sub-section -->
           <div class="card-divider">Schedule</div>
 
@@ -2699,6 +2734,7 @@
     return { logs: [], plan: {}, raceTarget: null, settings: {
       units: 'mi', theme: 'dark',
       approach: 'build',
+      strengthFocus: 'full',
       trainDays: ['mon','tue','wed','thu','fri','sat'],
       longRunDay: 'sat',
       injured: false,
@@ -2845,6 +2881,22 @@
       const chip = document.querySelector(`.focus-chip[data-focus="${focus}"]`);
       if (chip) chip.classList.add('sel');
     }
+  }
+
+  // ─── STRENGTH FOCUS ─────────────────────────────
+  function setStrengthFocus(val) {
+    document.querySelectorAll('.str-focus-btn').forEach(b => b.classList.remove('active'));
+    const btn = document.querySelector(`.str-focus-btn[data-sfocus="${val}"]`);
+    if (btn) btn.classList.add('active');
+    const data = loadData();
+    data.settings.strengthFocus = val;
+    saveData(data);
+    if (_currentWorkout !== null) renderWorkoutOverview();
+  }
+
+  function initStrengthFocus() {
+    const data = loadData();
+    setStrengthFocus(data.settings?.strengthFocus || 'full');
   }
 
   // ─── TRAINING APPROACH ──────────────────────────
@@ -3068,6 +3120,19 @@
     // CALF / LOWER LEG
     { id:'sl-calf',      name:'Single-leg Calf Raise', emoji:'🦶', cat:'calf',       type:'reps', equip:'step',        sets:3, reps:15, rest:45,  boulderSafe:true, injExclude:['ankle','plantar'], cues:'Stand on step edge, lower your heel fully below the step, then rise all the way onto your toes. Slow and controlled.', tips:['Full range of motion from below the step matters most for strength gains','A slight knee bend targets the soleus — mix it up across sets'] },
     { id:'tib-raise',    name:'Tibialis Raise',        emoji:'🦴', cat:'calf',       type:'reps', equip:'bodyweight',  sets:3, reps:15, rest:45,  boulderSafe:true, injExclude:['shin'],         cues:'Back against a wall, heels out about 30cm, lift your toes up as high as possible repeatedly.', tips:['Criminally underrated for shin splint and stress fracture prevention','Slow and deliberate — this is not a speed exercise'] },
+    // UPPER PUSH
+    { id:'push-up',      name:'Push-up',                emoji:'🤸', cat:'push',     type:'reps', equip:'bodyweight',  sets:3, reps:12, rest:60,  injExclude:['shoulder'], cues:'Hands slightly wider than shoulders, body in one straight line — lower until your chest nearly touches the floor, then press back up.', tips:['Elevate your hands on a bench or step for an easier variation','If your shoulders are fatigued from bouldering, keep these light or swap for a bench variation'] },
+    { id:'db-bench',     name:'Dumbbell Bench Press',   emoji:'🛋️', cat:'push',     type:'reps', equip:'bench',       sets:3, reps:10, rest:90,  injExclude:['shoulder'], cues:'Lie flat, dumbbells at chest level — press straight up and lower slowly under full control.', tips:['Keep your shoulder blades retracted and pressed into the bench throughout','2-second lowering phase builds significantly more strength than dropping the weight'] },
+    { id:'db-ohp',       name:'Overhead Press',         emoji:'🙌', cat:'shoulder', type:'reps', equip:'dumbbell',    sets:3, reps:10, rest:90,  injExclude:['shoulder'], cues:'Dumbbells at ear height — press straight overhead and lower slowly. Brace your core to avoid arching your back.', tips:['Rest this one if your shoulders are sore after a hard bouldering session','Seated variation removes the temptation to use your legs for momentum'] },
+    // UPPER PULL
+    { id:'db-row',       name:'Single-Arm Row',         emoji:'🚣', cat:'pull',     type:'reps', equip:'bench',       sets:3, reps:10, rest:90,  sides:true, injExclude:[], cues:'Hand and knee on bench, dumbbell hanging — drive your elbow back and up, squeezing your lat at the top.', tips:['Think "elbow to hip pocket" not "hand to ceiling"','Keep your lower back flat and avoid rotating your torso to compensate'] },
+    { id:'bent-row',     name:'Bent-over Row',          emoji:'🏗️', cat:'pull',     type:'reps', equip:'dumbbell',    sets:3, reps:10, rest:90,  injExclude:['lower-back'], cues:'Hip hinge position, dumbbells hanging — row both simultaneously, driving elbows back and squeezing shoulder blades together at the top.', tips:['Great pair with pressing movements to balance pushing and pulling strength','Keep your core braced throughout to protect your lower back'] },
+    // SHOULDER
+    { id:'lateral-raise',name:'Lateral Raise',          emoji:'✈️', cat:'shoulder', type:'reps', equip:'dumbbell',    sets:3, reps:12, rest:60,  injExclude:['shoulder'], cues:'Slight bend in elbows, raise dumbbells out to the side until parallel with the floor — lower slowly and with control.', tips:['Light weight and slow lowering beats heavy and sloppy every time','Leading with your pinky slightly better targets the lateral deltoid'] },
+    // ARMS
+    { id:'db-curl',      name:'Dumbbell Curl',          emoji:'💪', cat:'arms',     type:'reps', equip:'dumbbell',    sets:3, reps:12, rest:45,  injExclude:[], cues:'Upper arms fixed at your sides — curl the dumbbells through a full range of motion, squeeze at the top and lower slowly.', tips:['Bouldering works your biceps hard — keep these light after a climbing session','Alternate arms or do both together, whichever gives you better control'] },
+    { id:'tricep-ext',   name:'Tricep Extension',       emoji:'⚙️', cat:'arms',     type:'reps', equip:'dumbbell',    sets:3, reps:12, rest:45,  injExclude:['shoulder'], cues:'Hold one dumbbell overhead with both hands — lower it behind your head by bending your elbows only, then extend back up.', tips:['Keep your upper arms close to your head throughout the movement','Pairs naturally with curls — push/pull supersets are very time-efficient'] },
+    { id:'tricep-dip',   name:'Tricep Dip',             emoji:'⬇️', cat:'arms',     type:'reps', equip:'bench',       sets:3, reps:10, rest:60,  injExclude:['shoulder'], cues:'Hands on bench behind you, hips off — lower yourself by bending your elbows, keep your back close to the bench, then press back up.', tips:['Skip this if your elbows or shoulders are sore from climbing','Straighten your legs out in front to make it harder; bend them to make it easier'] },
   ];
 
   // ═══════════════════════════════════════════════
@@ -3080,6 +3145,7 @@
     const data = loadData();
     const s = data.settings || {};
     const injParts = s.injured ? (s.injuryParts || []) : [];
+    const focus = s.strengthFocus || 'full';
 
     function avail(id) {
       const m = MOVEMENTS.find(m => m.id === id);
@@ -3088,60 +3154,159 @@
     function pickFrom(...ids) {
       const pool = ids.filter(avail);
       if (!pool.length) return null;
-      return MOVEMENTS.find(m => m.id === pool[Math.floor(Math.random() * pool.length)]);
+      const pickedId = pool[Math.floor(Math.random() * pool.length)];
+      return MOVEMENTS.find(m => m.id === pickedId);
     }
 
     let parts = [];
+    let focusLabel = '';
 
-    if (sessionType === 'A') {
-      const hinge     = pickFrom('rdl', 'kb-deadlift', 'good-morning');
-      const glute     = pickFrom('hip-thrust', 'glute-bridge');
-      const singleLeg = pickFrom('bss', 'sl-rdl', 'step-up', 'rev-lunge');
-      const core1     = pickFrom('dead-bug', 'bird-dog', 'hollow-hold');
-      const core2     = pickFrom('cop-plank', 'side-plank');
-      const calf      = pickFrom('sl-calf', 'tib-raise');
+    if (focus === 'full') {
+      // Full Body A — posterior/pull emphasis
+      if (sessionType === 'A') {
+        focusLabel = 'Posterior · Pull · Core';
+        const hinge     = pickFrom('rdl', 'kb-deadlift', 'good-morning');
+        const pull      = pickFrom('db-row', 'bent-row');
+        const glute     = pickFrom('hip-thrust', 'glute-bridge');
+        const singleLeg = pickFrom('bss', 'sl-rdl', 'step-up', 'rev-lunge');
+        const core      = pickFrom('dead-bug', 'bird-dog', 'hollow-hold');
+        const finArm    = pickFrom('db-curl', 'tricep-dip');
+        const finCalf   = pickFrom('sl-calf', 'tib-raise');
 
-      if (hinge)
-        parts.push({ label:'Part 1', sets:hinge.sets, rest:hinge.rest, superset:false, moves:[hinge] });
-      if (glute)
-        parts.push({ label:'Part 2', sets:glute.sets, rest:glute.rest, superset:false, moves:[glute] });
-      if (singleLeg && core1)
-        parts.push({ label:'Part 3', sets:3, rest:120, superset:true, moves:[singleLeg, core1] });
-      else if (singleLeg)
-        parts.push({ label:'Part 3', sets:singleLeg.sets, rest:singleLeg.rest, superset:false, moves:[singleLeg] });
-      const finMoves = [calf, core2].filter(Boolean);
-      if (finMoves.length)
-        parts.push({ label:'Finisher', sets:2, rest:45, superset:finMoves.length > 1, moves:finMoves });
+        if (hinge)    parts.push({ label:'Part 1', sets:hinge.sets, rest:hinge.rest, superset:false, moves:[hinge] });
+        if (pull)     parts.push({ label:'Part 2', sets:pull.sets,  rest:pull.rest,  superset:false, moves:[pull] });
+        if (glute)    parts.push({ label:'Part 3', sets:glute.sets, rest:glute.rest, superset:false, moves:[glute] });
+        if (singleLeg && core)
+          parts.push({ label:'Part 4', sets:3, rest:90, superset:true, moves:[singleLeg, core] });
+        else if (singleLeg)
+          parts.push({ label:'Part 4', sets:singleLeg.sets, rest:singleLeg.rest, superset:false, moves:[singleLeg] });
+        const finMoves = [finArm, finCalf].filter(Boolean);
+        if (finMoves.length) parts.push({ label:'Finisher', sets:2, rest:45, superset:finMoves.length > 1, moves:finMoves });
 
-    } else {
-      const power     = pickFrom('box-jump', 'jump-squat', 'broad-jump');
-      const quad      = pickFrom('goblet-squat', 'box-squat');
-      const singleLeg = pickFrom('bss', 'step-up', 'rev-lunge');
-      const posterior = pickFrom('rdl', 'kb-deadlift');
-      const core      = pickFrom('dead-bug', 'bird-dog', 'hollow-hold', 'side-plank');
-      const calf      = pickFrom('sl-calf', 'tib-raise');
+      // Full Body B — quad/push/shoulder emphasis
+      } else {
+        focusLabel = 'Quad · Push · Shoulder · Arms';
+        const power     = pickFrom('box-jump', 'jump-squat', 'broad-jump');
+        const quad      = pickFrom('goblet-squat', 'box-squat');
+        const push      = pickFrom('push-up', 'db-bench');
+        const shoulder  = pickFrom('db-ohp', 'lateral-raise');
+        const singleLeg = pickFrom('bss', 'step-up', 'rev-lunge');
+        const arm       = pickFrom('db-curl', 'tricep-ext', 'tricep-dip');
+        const calf      = pickFrom('sl-calf', 'tib-raise');
 
-      if (power)
-        parts.push({ label:'Power', sets:power.sets, rest:power.rest, superset:false, moves:[power] });
-      if (quad)
-        parts.push({ label:'Part 1', sets:quad.sets, rest:quad.rest, superset:false, moves:[quad] });
-      if (singleLeg && core)
-        parts.push({ label:'Part 2', sets:3, rest:90, superset:true, moves:[singleLeg, core] });
-      if (posterior)
-        parts.push({ label:'Part 3', sets:posterior.sets, rest:posterior.rest, superset:false, moves:[posterior] });
-      if (calf)
-        parts.push({ label:'Finisher', sets:2, rest:45, superset:false, moves:[calf] });
+        if (power)    parts.push({ label:'Power',  sets:power.sets,  rest:power.rest,  superset:false, moves:[power] });
+        if (quad)     parts.push({ label:'Part 1', sets:quad.sets,   rest:quad.rest,   superset:false, moves:[quad] });
+        if (push && shoulder)
+          parts.push({ label:'Part 2', sets:3, rest:75, superset:true, moves:[push, shoulder] });
+        else if (push)
+          parts.push({ label:'Part 2', sets:push.sets, rest:push.rest, superset:false, moves:[push] });
+        if (singleLeg) parts.push({ label:'Part 3', sets:singleLeg.sets, rest:singleLeg.rest, superset:false, moves:[singleLeg] });
+        const finMoves = [arm, calf].filter(Boolean);
+        if (finMoves.length) parts.push({ label:'Finisher', sets:2, rest:45, superset:finMoves.length > 1, moves:finMoves });
+      }
+
+    } else if (focus === 'lower') {
+      // Lower Body A — posterior chain + glutes + core
+      if (sessionType === 'A') {
+        focusLabel = 'Posterior Chain · Glutes · Core';
+        const hinge     = pickFrom('rdl', 'kb-deadlift', 'good-morning');
+        const glute     = pickFrom('hip-thrust', 'glute-bridge');
+        const singleLeg = pickFrom('bss', 'sl-rdl', 'step-up', 'rev-lunge');
+        const core1     = pickFrom('dead-bug', 'bird-dog', 'hollow-hold');
+        const core2     = pickFrom('cop-plank', 'side-plank');
+        const calf      = pickFrom('sl-calf', 'tib-raise');
+
+        if (hinge)    parts.push({ label:'Part 1', sets:hinge.sets, rest:hinge.rest, superset:false, moves:[hinge] });
+        if (glute)    parts.push({ label:'Part 2', sets:glute.sets, rest:glute.rest, superset:false, moves:[glute] });
+        if (singleLeg && core1)
+          parts.push({ label:'Part 3', sets:3, rest:120, superset:true, moves:[singleLeg, core1] });
+        else if (singleLeg)
+          parts.push({ label:'Part 3', sets:singleLeg.sets, rest:singleLeg.rest, superset:false, moves:[singleLeg] });
+        const finMoves = [calf, core2].filter(Boolean);
+        if (finMoves.length) parts.push({ label:'Finisher', sets:2, rest:45, superset:finMoves.length > 1, moves:finMoves });
+
+      // Lower Body B — power + quad + single-leg
+      } else {
+        focusLabel = 'Power · Quad · Single-leg';
+        const power     = pickFrom('box-jump', 'jump-squat', 'broad-jump');
+        const quad      = pickFrom('goblet-squat', 'box-squat');
+        const singleLeg = pickFrom('bss', 'step-up', 'rev-lunge');
+        const posterior = pickFrom('rdl', 'kb-deadlift');
+        const core      = pickFrom('dead-bug', 'bird-dog', 'hollow-hold', 'side-plank');
+        const calf      = pickFrom('sl-calf', 'tib-raise');
+
+        if (power)     parts.push({ label:'Power',  sets:power.sets,    rest:power.rest,    superset:false, moves:[power] });
+        if (quad)      parts.push({ label:'Part 1', sets:quad.sets,     rest:quad.rest,     superset:false, moves:[quad] });
+        if (singleLeg && core)
+          parts.push({ label:'Part 2', sets:3, rest:90, superset:true, moves:[singleLeg, core] });
+        if (posterior) parts.push({ label:'Part 3', sets:posterior.sets, rest:posterior.rest, superset:false, moves:[posterior] });
+        if (calf)      parts.push({ label:'Finisher', sets:2, rest:45, superset:false, moves:[calf] });
+      }
+
+    } else if (focus === 'upper') {
+      // Upper Body A — push emphasis
+      if (sessionType === 'A') {
+        focusLabel = 'Push · Shoulder · Pull · Arms';
+        const push     = pickFrom('db-bench', 'push-up');
+        const shoulder = pickFrom('db-ohp');
+        const pull     = pickFrom('bent-row', 'db-row');
+        const arm1     = pickFrom('db-curl');
+        const arm2     = pickFrom('tricep-ext', 'tricep-dip');
+        const core     = pickFrom('dead-bug', 'hollow-hold', 'cop-plank', 'side-plank');
+
+        if (push)     parts.push({ label:'Part 1', sets:push.sets,     rest:push.rest,     superset:false, moves:[push] });
+        if (shoulder) parts.push({ label:'Part 2', sets:shoulder.sets, rest:shoulder.rest, superset:false, moves:[shoulder] });
+        if (pull)     parts.push({ label:'Part 3', sets:pull.sets,     rest:pull.rest,     superset:false, moves:[pull] });
+        if (arm1 && arm2)
+          parts.push({ label:'Arms', sets:3, rest:45, superset:true, moves:[arm1, arm2] });
+        else if (arm1 || arm2)
+          parts.push({ label:'Arms', sets:3, rest:45, superset:false, moves:[(arm1 || arm2)] });
+        if (core) parts.push({ label:'Core', sets:core.sets, rest:core.rest, superset:false, moves:[core] });
+
+      // Upper Body B — pull emphasis
+      } else {
+        focusLabel = 'Pull · Push · Shoulder · Arms';
+        const pull     = pickFrom('db-row', 'bent-row');
+        const push     = pickFrom('push-up', 'db-bench');
+        const shoulder = pickFrom('lateral-raise', 'db-ohp');
+        const arm1     = pickFrom('tricep-ext', 'tricep-dip');
+        const arm2     = pickFrom('db-curl');
+        const core1    = pickFrom('dead-bug', 'bird-dog', 'hollow-hold');
+        const core2    = pickFrom('cop-plank', 'side-plank');
+
+        if (pull)  parts.push({ label:'Part 1', sets:pull.sets,  rest:pull.rest,  superset:false, moves:[pull] });
+        if (push && shoulder)
+          parts.push({ label:'Part 2', sets:3, rest:75, superset:true, moves:[push, shoulder] });
+        else if (push)
+          parts.push({ label:'Part 2', sets:push.sets, rest:push.rest, superset:false, moves:[push] });
+        if (arm1 && arm2)
+          parts.push({ label:'Arms', sets:3, rest:45, superset:true, moves:[arm1, arm2] });
+        if (core1 && core2)
+          parts.push({ label:'Core', sets:3, rest:60, superset:true, moves:[core1, core2] });
+        else if (core1)
+          parts.push({ label:'Core', sets:core1.sets, rest:core1.rest, superset:false, moves:[core1] });
+      }
+
+    } else if (focus === 'core') {
+      focusLabel = 'Anti-rotation · Stability · Bracing';
+      const corePool = ['dead-bug','bird-dog','hollow-hold','cop-plank','side-plank'];
+      const shuffled = corePool.filter(avail).sort(() => Math.random() - 0.5).slice(0, 4);
+      shuffled.forEach((id, i) => {
+        const m = MOVEMENTS.find(m => m.id === id);
+        if (m) parts.push({ label:`Round ${i + 1}`, sets:3, rest:m.rest, superset:false, moves:[m] });
+      });
     }
 
+    const focusNames = { full:'Full Body', lower:'Lower Body', upper:'Upper Body', core:'Core' };
     const allEquip = [...new Set(parts.flatMap(p => p.moves.map(m => m.equip)).filter(e => e !== 'bodyweight'))];
     const estMin = parts.reduce((n, p) => n + (p.sets * p.moves.length * 2) + Math.ceil(p.sets * p.rest / 60), 0);
 
     return {
-      name: `Runner Strength ${sessionType}`,
+      name: `${focusNames[focus] || 'Full Body'} ${sessionType}`,
       sessionType,
-      focus: sessionType === 'A' ? 'Posterior Chain · Glutes · Core' : 'Power · Quad · Single-leg',
+      focus: focusLabel,
       equipment: allEquip,
-      estMin: Math.max(35, Math.min(estMin, 60)),
+      estMin: Math.max(30, Math.min(estMin, 65)),
       parts,
     };
   }
@@ -3566,6 +3731,7 @@
     initTrainDays();
     initLongRunDay();
     initInjury();
+    initStrengthFocus();
     initStrength();
     initInstallPrompt();
     initProgress();
