@@ -14,16 +14,12 @@ This is real, working, and doesn't need any of the steps below.
 
 ---
 
-## 2. Anthropic API key (for future AI-generated dynamic plans)
+## 2. Anthropic API key — DONE (2026-07-09)
 
-Self-serve, takes 5 minutes.
+- [x] Key created and stored as a Supabase Edge Function secret (`ANTHROPIC_API_KEY`) — never in `index.html` or anywhere that goes to GitHub, since this repo is public
+- [x] Available to any Edge Function via `Deno.env.get('ANTHROPIC_API_KEY')`
 
-- [ ] Go to [console.anthropic.com](https://console.anthropic.com) and create an account
-- [ ] Navigate to **API Keys** → create a new key
-- [ ] Set a spending limit under **Billing** (start low, e.g. $10–20/mo cap) so a bug can't run up a surprise bill
-- [ ] Store the key somewhere safe (password manager) — **never commit it into `index.html` or any file that goes to GitHub**, since this repo is public
-
-**Note:** this key isn't wired into the app yet — it's for a future feature (AI-personalized plan generation). Getting the key now just means it's ready when we build that.
+**Not wired into the app yet** — no `generate-plan` Edge Function exists. Deliberately held off building it until Frank's Garmin account is actually connected (Section 4), since the real feature needs his activity/readiness data, not just profile settings. Building it now would mean a weaker "generic goals only" version now, then redoing it later.
 
 ---
 
@@ -91,4 +87,4 @@ This reads the token the login step just saved and uploads it to Supabase. The a
 
 ## 5. Anthropic plan-generation proxy — not started
 
-Once the Garmin flow above is deployed and confirmed working, the next Edge Function (`supabase/functions/generate-plan`) will hold the Anthropic API key server-side and turn Frank's recent Garmin activity + profile focus chips into a dynamic weekly plan. Get the Anthropic key from Section 2 whenever convenient — nothing depends on it yet.
+Key is stored and ready (Section 2). Once Frank's Garmin account is actually connected (Section 4) and confirmed pulling real data, the next Edge Function (`supabase/functions/generate-plan`) will use `ANTHROPIC_API_KEY` server-side to turn his recent Garmin activity + profile focus chips into a dynamic weekly plan.
