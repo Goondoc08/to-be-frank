@@ -1,0 +1,8 @@
+{
+  "name": "to-be-frank-scripts",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "garmin-connect-sdk": "1.0.0-alpha.4"
+  }
+}

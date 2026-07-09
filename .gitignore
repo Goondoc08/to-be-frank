@@ -1,3 +1,10 @@
 .DS_Store
 Thumbs.db
 *.log
+.env
+.env.local
+supabase/.temp
+supabase/.branches
+scripts/node_modules
+scripts/.garmin-tokens
+scripts/package-lock.json

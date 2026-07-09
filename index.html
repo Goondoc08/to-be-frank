@@ -1755,9 +1755,9 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
           Warm Up First
         </button>
-        <button class="btn btn-primary btn-full" style="margin-bottom:var(--sp-sm)" onclick="requestWakeLock()">
+        <button class="btn btn-primary btn-full" id="garmin-push-btn" style="margin-bottom:var(--sp-sm)" onclick="pushRunToGarmin()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
-          Push to Garmin &amp; Start
+          <span class="gp-label">Push to Garmin &amp; Start</span>
         </button>
         <button class="btn btn-secondary btn-full" onclick="showView('log')">Log Manually Instead</button>
       </div>
@@ -2191,8 +2191,17 @@
         </div>
       </div>
     </div>
-    <button class="btn btn-primary btn-full" style="margin-bottom:var(--sp-sm)">Connect via Garmin OAuth</button>
-    <div style="font-size:11px;color:var(--text-tertiary);text-align:center">Requires a Supabase backend — coming in Phase 2</div>
+    <div id="garmin-status-card" class="card card-p" style="margin-bottom:var(--sp-md);text-align:center">
+      <div class="garmin-badge" id="garmin-sheet-badge" style="justify-content:center">
+        <div class="gb-dot"></div>
+        Checking…
+      </div>
+    </div>
+    <div style="font-size:14px;color:var(--text-secondary);line-height:1.6;margin-bottom:var(--sp-md)">
+      Garmin login now happens once from a computer, not from this app — Garmin requires a code from your phone or authenticator app that only works in a real login session. Ask Nicholas to run the one-time setup script; once it's done, this screen updates automatically and your data starts flowing in.
+    </div>
+    <button class="btn btn-primary btn-full" onclick="refreshGarminData(); openSheet('sheet-garmin')" style="margin-bottom:var(--sp-sm)">Check connection again</button>
+    <div style="font-size:11px;color:var(--text-tertiary);text-align:center">Your Garmin password is never entered into this app.</div>
   </div>
 </div>
 
@@ -2709,6 +2718,132 @@
       injured: false,
       injuryParts: []
     }};
+  }
+
+  // ─── GARMIN CONNECT ─────────────────────────────
+  // Login happens once, locally, via scripts/garmin-setup.mjs (Garmin's MFA
+  // step needs a real terminal). This app only ever reads status/data back.
+  const SUPABASE_URL = 'https://htnxrfjdsdevfvyrhrdb.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0bnhyZmpkc2RldmZ2eXJocmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2MDkzNjAsImV4cCI6MjA5OTE4NTM2MH0.dA7qxh9Hn44nGclpI7xiyLez8q_IQMgSMUhir_FDdq4';
+  const GARMIN_DATA_URL = SUPABASE_URL + '/functions/v1/garmin-data';
+
+  function setGarminBadges(text, connected) {
+    document.querySelectorAll('#garmin-badge, #garmin-sheet-badge').forEach(badge => {
+      badge.classList.toggle('connected', !!connected);
+      badge.innerHTML = '<div class="gb-dot"></div>' + text;
+    });
+  }
+
+  async function refreshGarminData() {
+    setGarminBadges('Checking…', false);
+    const sub = document.getElementById('r-sub');
+    try {
+      const res = await fetch(GARMIN_DATA_URL, {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+        }
+      });
+      const data = await res.json();
+      if (res.status === 404) {
+        setGarminBadges('Not connected', false);
+        if (sub) sub.textContent = 'Connect Garmin to see Body Battery & HRV';
+        return;
+      }
+      if (!res.ok) throw new Error(data.error || 'Sync failed');
+      setGarminBadges('Connected', true);
+      if (sub) sub.textContent = 'Synced from Garmin';
+    } catch (e) {
+      console.warn('Garmin data fetch failed:', e);
+      setGarminBadges('Sync issue', false);
+      if (sub) sub.textContent = 'Garmin sync issue — try again shortly';
+    }
+  }
+
+  // Reads whatever is currently rendered in the Run panel's session
+  // structure list and turns it into garmin-connect-sdk's CreateWorkoutInput
+  // shape. A block whose icon is like "×3" starts a repeat group; if the
+  // very next block is the paired recovery step (icon "REC"), it's folded
+  // into the same repeat. Durations only — we don't fabricate HR-zone or
+  // pace targets the app was never given real numbers for.
+  function parseDurationSeconds(text) {
+    const m = (text || '').match(/(\d+)\s*min/);
+    return m ? parseInt(m[1], 10) * 60 : undefined;
+  }
+
+  function buildRunWorkoutFromPanel() {
+    const blockEls = Array.from(document.querySelectorAll('#panel-run .run-block'));
+    const blocks = blockEls.map(el => ({
+      icon: el.querySelector('.rb-icon').textContent.trim(),
+      name: el.querySelector('.rbn').textContent.trim(),
+      sub: el.querySelector('.rbsb').textContent.trim(),
+      dur: el.querySelector('.rb-dur').textContent.trim(),
+    }));
+
+    const steps = [];
+    for (let i = 0; i < blocks.length; i++) {
+      const b = blocks[i];
+      const repeatMatch = b.icon.match(/^×(\d+)$/);
+      if (repeatMatch) {
+        const intervalStep = {
+          type: 'interval',
+          description: b.name + ' — ' + b.sub,
+          durationSeconds: parseDurationSeconds(b.dur),
+        };
+        const repeatSteps = [intervalStep];
+        const next = blocks[i + 1];
+        if (next && (next.icon === 'REC' || next.name.toLowerCase().includes('recovery'))) {
+          repeatSteps.push({
+            type: 'recovery',
+            description: next.name + ' — ' + next.sub,
+            durationSeconds: parseDurationSeconds(next.dur),
+          });
+          i++;
+        }
+        steps.push({ type: 'repeat', iterations: parseInt(repeatMatch[1], 10), steps: repeatSteps });
+      } else {
+        const n = b.name.toLowerCase();
+        const kind = n.includes('warm') ? 'warmup' : n.includes('cool') ? 'cooldown' :
+          n.includes('recovery') ? 'recovery' : 'interval';
+        steps.push({
+          type: kind,
+          description: b.name + ' — ' + b.sub,
+          durationSeconds: parseDurationSeconds(b.dur),
+        });
+      }
+    }
+
+    const nameEl = document.querySelector('#panel-run div[style*="font-size:22px"]');
+    const name = nameEl ? nameEl.textContent.trim() : 'Run Session';
+
+    return { name, sport: 'running', steps };
+  }
+
+  async function pushRunToGarmin() {
+    const btn = document.getElementById('garmin-push-btn');
+    const label = btn ? btn.querySelector('.gp-label') : null;
+    const setLabel = (t) => { if (label) label.textContent = t; };
+
+    setLabel('Pushing to Garmin…');
+    try {
+      const workout = buildRunWorkoutFromPanel();
+      const res = await fetch(SUPABASE_URL + '/functions/v1/garmin-push-workout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+        },
+        body: JSON.stringify({ workout, date: new Date().toISOString().slice(0, 10) })
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Push failed');
+      setLabel('Pushed to Garmin ✓');
+    } catch (e) {
+      console.warn('Garmin push failed:', e);
+      setLabel('Push failed — starting anyway');
+    }
+    requestWakeLock();
   }
 
   // ─── SETTINGS ───────────────────────────────────
@@ -3901,6 +4036,7 @@
     initMobility();
     initInstallPrompt();
     initProgress();
+    refreshGarminData();
   });
 </script>
 
