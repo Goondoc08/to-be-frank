@@ -49,13 +49,19 @@ Built and deployed:
 - [x] `supabase/migrations/20260709010000_garmin_tokens_v2.sql` — `garmin_tokens(athlete, tokens jsonb)`, RLS on with zero policies (service_role only)
 - [x] Profile tab "Garmin Connect" sheet updated — no password fields; shows live Connected/Not connected status pulled from `garmin-data`, with a "Check connection again" button
 
+**DONE — connected 2026-07-09.** Real Garmin data (heart rate, sleep, activities) is flowing through `garmin-data` into the app.
+
 **To actually connect Frank's account, run this once from a computer with Node 24+:**
 ```
 cd "To Be Frank/scripts"
 npm install
 ```
-Then set the env var and run the login CLI — syntax depends on your shell:
-- **cmd.exe:** `set GARMIN_TOKEN_PATH=./.garmin-tokens && npx garmin-connect profile`
+Then set the env var and run the login CLI — syntax depends on your shell. **Don't chain the `set` with `&&` in cmd.exe** — it silently includes the trailing space before `&&` as part of the value, which sends the CLI's token file to `.garmin-tokens ` (with a stray trailing space) instead of `.garmin-tokens`, so the upload script can't find it. Run `set` on its own line instead:
+- **cmd.exe:**
+  ```
+  set GARMIN_TOKEN_PATH=./.garmin-tokens
+  npx garmin-connect profile
+  ```
 - **PowerShell:** `$env:GARMIN_TOKEN_PATH=".\.garmin-tokens"; npx garmin-connect profile`
 - **bash/zsh:** `GARMIN_TOKEN_PATH=./.garmin-tokens npx garmin-connect profile`
 
