@@ -49,14 +49,21 @@ Built and deployed:
 - [x] `supabase/migrations/20260709010000_garmin_tokens_v2.sql` — `garmin_tokens(athlete, tokens jsonb)`, RLS on with zero policies (service_role only)
 - [x] Profile tab "Garmin Connect" sheet updated — no password fields; shows live Connected/Not connected status pulled from `garmin-data`, with a "Check connection again" button
 
-**DONE — connected 2026-07-09.** Real Garmin data (heart rate, sleep, activities) is flowing through `garmin-data` into the app.
+**Not connected yet.** A first attempt on 2026-07-09 silently logged into Nicholas's own Garmin account instead of Frank's — his machine has `GARMIN_EMAIL`/`GARMIN_PASSWORD` set as persistent environment variables (from his separate NAM Fitness Garmin integration), and `createGarminFromCli` does `process.env.GARMIN_EMAIL ?? (prompt)`, so it silently used those instead of asking. No prompts appeared, which was the tell. That wrong token has been deleted from Supabase and the local machine.
 
 **To actually connect Frank's account, run this once from a computer with Node 24+:**
 ```
 cd "To Be Frank/scripts"
 npm install
 ```
-Then set the env var and run the login CLI — syntax depends on your shell. **Don't chain the `set` with `&&` in cmd.exe** — it silently includes the trailing space before `&&` as part of the value, which sends the CLI's token file to `.garmin-tokens ` (with a stray trailing space) instead of `.garmin-tokens`, so the upload script can't find it. Run `set` on its own line instead:
+**On Nicholas's machine specifically: clear `GARMIN_EMAIL`/`GARMIN_PASSWORD` for this terminal session first**, or the CLI will silently reuse his own account again instead of prompting for Frank's:
+```
+set GARMIN_EMAIL=
+set GARMIN_PASSWORD=
+```
+(This only clears them for this one cmd.exe window — his permanent env vars and the NAM Fitness integration that depends on them are untouched.)
+
+Then set the token path and run the login CLI — syntax depends on your shell. **Don't chain the `set` with `&&` in cmd.exe** — it silently includes the trailing space before `&&` as part of the value, which sends the CLI's token file to `.garmin-tokens ` (with a stray trailing space) instead of `.garmin-tokens`, so the upload script can't find it. Run `set` on its own line instead:
 - **cmd.exe:**
   ```
   set GARMIN_TOKEN_PATH=./.garmin-tokens
@@ -65,7 +72,7 @@ Then set the env var and run the login CLI — syntax depends on your shell. **D
 - **PowerShell:** `$env:GARMIN_TOKEN_PATH=".\.garmin-tokens"; npx garmin-connect profile`
 - **bash/zsh:** `GARMIN_TOKEN_PATH=./.garmin-tokens npx garmin-connect profile`
 
-This prompts for Garmin email, password, and an MFA code if Garmin asks for one — all normal terminal prompts, nothing to build. Then:
+**Confirm it's actually prompting for email/password before entering Frank's credentials.** If it reports `"restoredSession": true` immediately with no prompts, stop — it found a stale/wrong session, not a fresh login. Then:
 ```
 node garmin-upload-token.mjs
 ```
