@@ -692,7 +692,9 @@
       justify-content: center;
       font-size: 24px;
       flex-shrink: 0;
+      overflow: hidden;
     }
+    .mov-thumb video { width: 100%; height: 100%; object-fit: cover; }
     .mov-info { flex: 1; }
     .mov-info .mn  { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
     .mov-info .mrx { font-size: 12px; color: var(--text-secondary); }
@@ -1250,6 +1252,14 @@
       margin-bottom: var(--sp-md); flex-shrink: 0;
     }
     .so-anim-wrap img { width: 100%; height: 100%; object-fit: contain; }
+    .so-anim-wrap video { width: 100%; height: 100%; object-fit: cover; }
+    .so-variant-link {
+      position: absolute; bottom: 8px; left: 8px;
+      font-size: 10px; font-weight: 600; color: var(--text-tertiary);
+      background: rgba(25,25,28,0.85);
+      padding: 3px 8px; border-radius: var(--r-pill);
+      border: 1px solid var(--border); cursor: pointer;
+    }
     .so-anim-hint {
       position: absolute; bottom: 8px; right: 8px;
       font-size: 10px; font-weight: 600; color: var(--text-tertiary);
@@ -1318,11 +1328,12 @@
     #sheet-mov-detail { z-index: 300; }
     #sheet-mov-detail .sheet { max-height: 88dvh; overflow-y: auto; }
     .mov-detail-anim {
-      width: 100%; aspect-ratio: 4/3;
+      width: 100%; aspect-ratio: 4/3; overflow: hidden;
       background: var(--bg-card); border-radius: var(--r-md);
       display: flex; align-items: center; justify-content: center;
       font-size: 80px; margin-bottom: var(--sp-md);
     }
+    .mov-detail-anim video { width: 100%; height: 100%; object-fit: cover; }
     .mov-detail-name { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
     .mov-detail-cues { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: var(--sp-md); border-bottom: 1px solid var(--border); padding-bottom: var(--sp-md); }
     .tip-item { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
@@ -1731,6 +1742,10 @@
             <div class="rb-dur">10 min</div>
           </div>
         </div>
+        <button class="btn btn-secondary btn-full" style="margin-bottom:var(--sp-sm)" onclick="startWarmup()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+          Warm Up First
+        </button>
         <button class="btn btn-primary btn-full" style="margin-bottom:var(--sp-sm)" onclick="requestWakeLock()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
           Push to Garmin &amp; Start
@@ -1763,63 +1778,8 @@
           </div>
         </div>
         <div class="label" style="margin-bottom:var(--sp-sm)">Movements — hold each position</div>
-        <div class="movement-list" style="margin-bottom:var(--sp-md)">
-          <div class="movement-item" onclick="toggleMovement(this)">
-            <div class="mov-thumb">🧎</div>
-            <div class="mov-info">
-              <div class="mn">Hip Flexor Lunge Stretch</div>
-              <div class="mrx">60 sec each side · posterior tilt to feel the pull</div>
-            </div>
-            <div class="mov-check"></div>
-          </div>
-          <div class="movement-item" onclick="toggleMovement(this)">
-            <div class="mov-thumb">🦵</div>
-            <div class="mov-info">
-              <div class="mn">IT Band / Pigeon Pose</div>
-              <div class="mrx">90 sec each side · breathe into the hip</div>
-            </div>
-            <div class="mov-check"></div>
-          </div>
-          <div class="movement-item" onclick="toggleMovement(this)">
-            <div class="mov-thumb">🦴</div>
-            <div class="mov-info">
-              <div class="mn">90/90 Hip Rotation</div>
-              <div class="mrx">60 sec each side · internal + external rotation</div>
-            </div>
-            <div class="mov-check"></div>
-          </div>
-          <div class="movement-item" onclick="toggleMovement(this)">
-            <div class="mov-thumb">🌀</div>
-            <div class="mov-info">
-              <div class="mn">Thoracic Rotation (Thread the Needle)</div>
-              <div class="mrx">10 slow reps each side · open the upper back</div>
-            </div>
-            <div class="mov-check"></div>
-          </div>
-          <div class="movement-item" onclick="toggleMovement(this)">
-            <div class="mov-thumb">🦶</div>
-            <div class="mov-info">
-              <div class="mn">Calf &amp; Achilles Stretch</div>
-              <div class="mrx">60 sec each · straight leg then bent knee</div>
-            </div>
-            <div class="mov-check"></div>
-          </div>
-          <div class="movement-item" onclick="toggleMovement(this)">
-            <div class="mov-thumb">🤸</div>
-            <div class="mov-info">
-              <div class="mn">Standing Hamstring Sweep</div>
-              <div class="mrx">10 slow reps each leg · keep spine neutral</div>
-            </div>
-            <div class="mov-check"></div>
-          </div>
-          <div class="movement-item" onclick="toggleMovement(this)">
-            <div class="mov-thumb">💆</div>
-            <div class="mov-info">
-              <div class="mn">Child's Pose with Lat Reach</div>
-              <div class="mrx">60 sec · decompress the spine · breathe</div>
-            </div>
-            <div class="mov-check"></div>
-          </div>
+        <div class="movement-list" id="mobility-list" style="margin-bottom:var(--sp-md)">
+          <!-- rendered by renderMobilityList() -->
         </div>
         <button class="btn btn-primary btn-full" style="margin-bottom:var(--sp-sm)" onclick="requestWakeLock()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
@@ -3093,47 +3053,94 @@
   // ═══════════════════════════════════════════════
   const MOVEMENTS = [
     // POSTERIOR CHAIN / HIP HINGE
-    { id:'rdl',          name:'Romanian Deadlift',     emoji:'🏋️', cat:'posterior',  type:'reps', equip:'dumbbell',    sets:3, reps:10, rest:90,  boulderSafe:true, injExclude:['lower-back'], cues:'Push hips back — not down. Keep your back flat and feel the stretch through your hamstrings before driving back up.', tips:['Slow 3-sec lowering phase builds more strength than going fast','Keep the weights close to your legs throughout the movement','Stop when you feel a good hamstring stretch — you don\'t need to touch the floor'] },
-    { id:'kb-deadlift',  name:'Kettlebell Deadlift',   emoji:'⚫', cat:'posterior',  type:'reps', equip:'kettlebell',  sets:3, reps:12, rest:90,  boulderSafe:true, injExclude:['lower-back'], cues:'Hinge at the hips, brace your core, drive through your heels to stand tall. Bell stays between feet.', tips:['Great starting point for learning the hip hinge pattern','Shoulders should be slightly in front of the bell at the start'] },
-    { id:'good-morning', name:'Good Morning',          emoji:'🌅', cat:'posterior',  type:'reps', equip:'bodyweight',  sets:3, reps:12, rest:60,  boulderSafe:true, injExclude:['lower-back'], cues:'Soft knee bend, hinge forward until your hamstrings are fully loaded, then drive back up to standing.', tips:['Think "bow" not "bend" — hips go back, not down','Bodyweight only until you\'re very comfortable with the movement'] },
-    // GLUTE / HIP THRUST
-    { id:'hip-thrust',   name:'Hip Thrust',            emoji:'🍑', cat:'hip-thrust', type:'reps', equip:'bench',       sets:3, reps:12, rest:90,  boulderSafe:true, injExclude:['hip'],         cues:'Upper back on bench, feet flat on floor, drive through your heels and squeeze your glutes hard at the top.', tips:['Tuck your chin slightly to keep your spine neutral','Get full hip extension at the top — don\'t cut it short'] },
-    { id:'glute-bridge', name:'Glute Bridge',          emoji:'🌉', cat:'hip-thrust', type:'reps', equip:'bodyweight',  sets:3, reps:15, rest:60,  boulderSafe:true, injExclude:[],              cues:'Flat on your back, heels close to glutes, drive hips straight up and squeeze hard at the top.', tips:['Add a dumbbell across your hips when bodyweight feels easy','Pause 1 second at the top for more glute activation'] },
+    { id:'rdl',          name:'Romanian Deadlift',     emoji:'🏋️', video:'rdl.mp4', videoVariant:'rdl-variant.mp4', variantLabel:'Dumbbell variant', cat:'posterior',  type:'reps', equip:'dumbbell',    sets:3, reps:10, rest:90,  boulderSafe:true, injExclude:['lower-back'], cues:'Push hips back — not down. Keep your back flat and feel the stretch through your hamstrings before driving back up.', tips:['Slow 3-sec lowering phase builds more strength than going fast','Keep the weights close to your legs throughout the movement','Stop when you feel a good hamstring stretch — you don\'t need to touch the floor'] },
+    { id:'kb-deadlift',  name:'Kettlebell Deadlift',   emoji:'⚫', video:'kb-deadlift.mp4', cat:'posterior',  type:'reps', equip:'kettlebell',  sets:3, reps:12, rest:90,  boulderSafe:true, injExclude:['lower-back'], cues:'Hinge at the hips, brace your core, drive through your heels to stand tall. Bell stays between feet.', tips:['Great starting point for learning the hip hinge pattern','Shoulders should be slightly in front of the bell at the start'] },
+    { id:'good-morning', name:'Good Morning',          emoji:'🌅', video:'good-morning.mp4', cat:'posterior',  type:'reps', equip:'bodyweight',  sets:3, reps:12, rest:60,  boulderSafe:true, injExclude:['lower-back'], cues:'Soft knee bend, hinge forward until your hamstrings are fully loaded, then drive back up to standing.', tips:['Think "bow" not "bend" — hips go back, not down','Bodyweight only until you\'re very comfortable with the movement'] },
+    // GLUTE
+    { id:'glute-bridge', name:'Glute Bridge',          emoji:'🌉', video:'glute-bridge.mp4', cat:'hip-thrust', type:'reps', equip:'bodyweight',  sets:3, reps:15, rest:60,  boulderSafe:true, injExclude:[],              cues:'Flat on your back, heels close to glutes, drive hips straight up and squeeze hard at the top.', tips:['Add a dumbbell across your hips when bodyweight feels easy','Pause 1 second at the top for more glute activation'] },
     // SINGLE-LEG
-    { id:'bss',          name:'Bulgarian Split Squat', emoji:'🦵', cat:'single-leg', type:'reps', equip:'bench',       sets:3, reps:8,  rest:120, boulderSafe:true, injExclude:['knee','hip'],  cues:'Rear foot on bench, front foot far forward so your shin stays vertical at the bottom. Drop straight down.', tips:['Bodyweight only until your form is completely solid','Most of your weight should stay on the front foot'] },
-    { id:'sl-rdl',       name:'Single-leg RDL',        emoji:'🦩', cat:'single-leg', type:'reps', equip:'dumbbell',    sets:3, reps:8,  rest:90,  boulderSafe:true, injExclude:['ankle','knee'], cues:'Stand on one leg, hinge forward with a flat back — dumbbell hangs straight down. Feel the hamstring load.', tips:['Fix your gaze on a fixed point for balance','Start light — control and stability beat load here'] },
-    { id:'step-up',      name:'Step-up',               emoji:'🪜', cat:'single-leg', type:'reps', equip:'bench',       sets:3, reps:10, rest:90,  boulderSafe:true, injExclude:['knee','ankle'], cues:'Step up driving through the heel on the box, lower the trailing foot slowly under full control.', tips:['Don\'t push off with the trailing foot — all work goes through the working leg','Add dumbbells once bodyweight feels easy'] },
-    { id:'rev-lunge',    name:'Reverse Lunge',         emoji:'↩️', cat:'single-leg', type:'reps', equip:'bodyweight',  sets:3, reps:10, rest:60,  boulderSafe:true, injExclude:['knee'],         cues:'Step back, lower your rear knee toward the floor, keep your front shin vertical and chest tall.', tips:['Less knee stress than a forward lunge — good starting point','Add dumbbells or a goblet hold to progress'] },
+    { id:'bss',          name:'Bulgarian Split Squat', emoji:'🦵', video:'bss.mp4', cat:'single-leg', type:'reps', equip:'bench',       sets:3, reps:8,  rest:120, boulderSafe:true, injExclude:['knee','hip'],  cues:'Rear foot on bench, front foot far forward so your shin stays vertical at the bottom. Drop straight down.', tips:['Bodyweight only until your form is completely solid','Most of your weight should stay on the front foot'] },
+    { id:'sl-rdl',       name:'Single-leg RDL',        emoji:'🦩', video:'sl-rdl.mp4', cat:'single-leg', type:'reps', equip:'dumbbell',    sets:3, reps:8,  rest:90,  boulderSafe:true, injExclude:['ankle','knee'], cues:'Stand on one leg, hinge forward with a flat back — dumbbell hangs straight down. Feel the hamstring load.', tips:['Fix your gaze on a fixed point for balance','Start light — control and stability beat load here'] },
+    { id:'step-up',      name:'Step-up',               emoji:'🪜', video:'step-up.mp4', cat:'single-leg', type:'reps', equip:'bench',       sets:3, reps:10, rest:90,  boulderSafe:true, injExclude:['knee','ankle'], cues:'Step up driving through the heel on the box, lower the trailing foot slowly under full control.', tips:['Don\'t push off with the trailing foot — all work goes through the working leg','Add dumbbells once bodyweight feels easy'] },
+    { id:'rev-lunge',    name:'Reverse Lunge',         emoji:'↩️', video:'rev-lunge.mp4', cat:'single-leg', type:'reps', equip:'bodyweight',  sets:3, reps:10, rest:60,  boulderSafe:true, injExclude:['knee'],         cues:'Step back, lower your rear knee toward the floor, keep your front shin vertical and chest tall.', tips:['Less knee stress than a forward lunge — good starting point','Add dumbbells or a goblet hold to progress'] },
     // QUAD
-    { id:'goblet-squat', name:'Goblet Squat',          emoji:'🏆', cat:'quad',       type:'reps', equip:'dumbbell',    sets:3, reps:12, rest:90,  boulderSafe:true, injExclude:['knee'],         cues:'Hold dumbbell at chest, feet shoulder-width, squat to full depth — elbows track inside your knees.', tips:['Full depth — sit all the way into it','Elbows inside knees helps drive your knees out and protects them'] },
-    { id:'box-squat',    name:'Box Squat',             emoji:'📦', cat:'quad',       type:'reps', equip:'bench',       sets:3, reps:10, rest:90,  boulderSafe:true, injExclude:['knee'],         cues:'Sit back to the box under control, pause briefly without collapsing, then drive through your heels to stand.', tips:['Teaches the sit-back squat pattern well','Chest stays tall — don\'t let it cave forward'] },
+    { id:'goblet-squat', name:'Goblet Squat',          emoji:'🏆', video:'goblet-squat.mp4', cat:'quad',       type:'reps', equip:'dumbbell',    sets:3, reps:12, rest:90,  boulderSafe:true, injExclude:['knee'],         cues:'Hold dumbbell at chest, feet shoulder-width, squat to full depth — elbows track inside your knees.', tips:['Full depth — sit all the way into it','Elbows inside knees helps drive your knees out and protects them'] },
+    { id:'box-squat',    name:'Box Squat',             emoji:'📦', video:'box-squat.mp4', cat:'quad',       type:'reps', equip:'bench',       sets:3, reps:10, rest:90,  boulderSafe:true, injExclude:['knee'],         cues:'Sit back to the box under control, pause briefly without collapsing, then drive through your heels to stand.', tips:['Teaches the sit-back squat pattern well','Chest stays tall — don\'t let it cave forward'] },
     // POWER / PLYOMETRIC
-    { id:'box-jump',     name:'Box Jump',              emoji:'🦘', cat:'power',      type:'reps', equip:'box',         sets:3, reps:5,  rest:120, boulderSafe:true, injExclude:['knee','ankle'], cues:'Load your hips, swing your arms, explode upward — land softly with bent knees on the box.', tips:['Quality over quantity — 5 fully maximal jumps beats 10 sloppy ones','Always step down, never jump down, to protect your ankles'] },
-    { id:'jump-squat',   name:'Jump Squat',            emoji:'⬆️', cat:'power',      type:'reps', equip:'bodyweight',  sets:3, reps:6,  rest:90,  boulderSafe:true, injExclude:['knee','ankle'], cues:'Squat to roughly parallel, then explode straight up as fast as possible. Land quietly with soft bent knees.', tips:['Arm swing generates power — let them drive up as you jump','Focus on the landing as much as the jump — quiet = safe'] },
-    { id:'broad-jump',   name:'Broad Jump',            emoji:'🏃', cat:'power',      type:'reps', equip:'bodyweight',  sets:3, reps:5,  rest:90,  boulderSafe:true, injExclude:['knee','ankle'], cues:'Load your hips and jump forward as far as possible — stick the landing and hold for two full seconds.', tips:['Great transfer to running power and stride length','Holding the landing builds single-stance stability critical for running'] },
+    { id:'box-jump',     name:'Box Jump',              emoji:'🦘', video:'box-jump.mp4', cat:'power',      type:'reps', equip:'box',         sets:3, reps:5,  rest:120, boulderSafe:true, injExclude:['knee','ankle'], cues:'Load your hips, swing your arms, explode upward — land softly with bent knees on the box.', tips:['Quality over quantity — 5 fully maximal jumps beats 10 sloppy ones','Always step down, never jump down, to protect your ankles'] },
+    { id:'jump-squat',   name:'Jump Squat',            emoji:'⬆️', video:'jump-squat.mp4', cat:'power',      type:'reps', equip:'bodyweight',  sets:3, reps:6,  rest:90,  boulderSafe:true, injExclude:['knee','ankle'], cues:'Squat to roughly parallel, then explode straight up as fast as possible. Land quietly with soft bent knees.', tips:['Arm swing generates power — let them drive up as you jump','Focus on the landing as much as the jump — quiet = safe'] },
     // CORE
-    { id:'dead-bug',     name:'Dead Bug',              emoji:'🐛', cat:'core',       type:'reps', equip:'bodyweight',  sets:3, reps:10, rest:45,  boulderSafe:true, injExclude:['lower-back'],  cues:'Flatten your lower back to the floor. Extend opposite arm and leg, breathing out as you lower them.', tips:['Your lower back must stay pressed flat the entire time — this is the whole point','Slow and controlled beats fast — speed kills the anti-rotation benefit'] },
-    { id:'cop-plank',    name:'Copenhagen Plank',      emoji:'🧗', cat:'core',       type:'time', equip:'bench',       sets:3, dur:20,  rest:45,  sides:true, boulderSafe:true, injExclude:['hip'], cues:'Top leg on bench, bottom leg raised, hold a strong side-plank position — brace everything.', tips:['One of the best adductor and lateral core exercises for runners','Build from 10 seconds each side if needed — quality over duration'] },
-    { id:'bird-dog',     name:'Bird Dog',              emoji:'🐕', cat:'core',       type:'reps', equip:'bodyweight',  sets:3, reps:10, rest:45,  boulderSafe:true, injExclude:[],              cues:'On hands and knees, extend opposite arm and leg simultaneously — keep your hips perfectly level throughout.', tips:['Think long rather than high — reach out, not up','Squeeze the glute of the extended leg for extra hip stability'] },
-    { id:'hollow-hold',  name:'Hollow Hold',           emoji:'🌒', cat:'core',       type:'time', equip:'bodyweight',  sets:3, dur:20,  rest:45,  boulderSafe:true, injExclude:[],              cues:'Lower back pressed to floor, arms overhead, legs extended and low — hold this dish shape and breathe.', tips:['Bend your knees if the full version is too hard at first','Keep breathing — holding your breath defeats the purpose'] },
-    { id:'side-plank',   name:'Side Plank',            emoji:'📐', cat:'core',       type:'time', equip:'bodyweight',  sets:3, dur:30,  rest:45,  sides:true, boulderSafe:true, injExclude:[],  cues:'Elbow directly under shoulder, body in one straight line, lift your hips as high as you can.', tips:['Stagger your feet for more stability when starting out','Add hip dips — lowering and lifting your hips — to increase difficulty'] },
+    { id:'dead-bug',     name:'Dead Bug',              emoji:'🐛', video:'dead-bug.mp4', cat:'core',       type:'reps', equip:'bodyweight',  sets:3, reps:10, rest:45,  boulderSafe:true, injExclude:['lower-back'],  cues:'Flatten your lower back to the floor. Extend opposite arm and leg, breathing out as you lower them.', tips:['Your lower back must stay pressed flat the entire time — this is the whole point','Slow and controlled beats fast — speed kills the anti-rotation benefit'] },
+    { id:'cop-plank',    name:'Copenhagen Plank',      emoji:'🧗', video:'cop-plank.mp4', cat:'core',       type:'time', equip:'bench',       sets:3, dur:20,  rest:45,  sides:true, boulderSafe:true, injExclude:['hip'], cues:'Top leg on bench, bottom leg raised, hold a strong side-plank position — brace everything.', tips:['One of the best adductor and lateral core exercises for runners','Build from 10 seconds each side if needed — quality over duration'] },
+    { id:'bird-dog',     name:'Bird Dog',              emoji:'🐕', video:'bird-dog.mp4', cat:'core',       type:'reps', equip:'bodyweight',  sets:3, reps:10, rest:45,  boulderSafe:true, injExclude:[],              cues:'On hands and knees, extend opposite arm and leg simultaneously — keep your hips perfectly level throughout.', tips:['Think long rather than high — reach out, not up','Squeeze the glute of the extended leg for extra hip stability'] },
+    { id:'hollow-hold',  name:'Hollow Hold',           emoji:'🌒', video:'hollow-hold.mp4', cat:'core',       type:'time', equip:'bodyweight',  sets:3, dur:20,  rest:45,  boulderSafe:true, injExclude:[],              cues:'Lower back pressed to floor, arms overhead, legs extended and low — hold this dish shape and breathe.', tips:['Bend your knees if the full version is too hard at first','Keep breathing — holding your breath defeats the purpose'] },
+    { id:'plank',        name:'Plank',                 emoji:'📐', video:'plank.mp4', cat:'core',       type:'time', equip:'bodyweight',  sets:3, dur:30,  rest:45,  boulderSafe:true, injExclude:[],  cues:'Elbows under shoulders, body in one straight line from head to heels — brace your core and squeeze your glutes.', tips:['Don\'t let your hips sag or pike up — check your line in a mirror if unsure','Breathe steadily throughout — holding your breath adds unnecessary tension'] },
     // CALF / LOWER LEG
-    { id:'sl-calf',      name:'Single-leg Calf Raise', emoji:'🦶', cat:'calf',       type:'reps', equip:'step',        sets:3, reps:15, rest:45,  boulderSafe:true, injExclude:['ankle','plantar'], cues:'Stand on step edge, lower your heel fully below the step, then rise all the way onto your toes. Slow and controlled.', tips:['Full range of motion from below the step matters most for strength gains','A slight knee bend targets the soleus — mix it up across sets'] },
-    { id:'tib-raise',    name:'Tibialis Raise',        emoji:'🦴', cat:'calf',       type:'reps', equip:'bodyweight',  sets:3, reps:15, rest:45,  boulderSafe:true, injExclude:['shin'],         cues:'Back against a wall, heels out about 30cm, lift your toes up as high as possible repeatedly.', tips:['Criminally underrated for shin splint and stress fracture prevention','Slow and deliberate — this is not a speed exercise'] },
+    { id:'sl-calf',      name:'Single-leg Calf Raise', emoji:'🦶', video:'sl-calf.mp4', cat:'calf',       type:'reps', equip:'step',        sets:3, reps:15, rest:45,  boulderSafe:true, injExclude:['ankle','plantar'], cues:'Stand on step edge, lower your heel fully below the step, then rise all the way onto your toes. Slow and controlled.', tips:['Full range of motion from below the step matters most for strength gains','A slight knee bend targets the soleus — mix it up across sets'] },
+    { id:'tib-raise',    name:'Tibialis Raise',        emoji:'🦴', video:'tib-raise.mp4', cat:'calf',       type:'reps', equip:'bodyweight',  sets:3, reps:15, rest:45,  boulderSafe:true, injExclude:['shin'],         cues:'Back against a wall, heels out about 30cm, lift your toes up as high as possible repeatedly.', tips:['Criminally underrated for shin splint and stress fracture prevention','Slow and deliberate — this is not a speed exercise'] },
     // UPPER PUSH
-    { id:'push-up',      name:'Push-up',                emoji:'🤸', cat:'push',     type:'reps', equip:'bodyweight',  sets:3, reps:12, rest:60,  injExclude:['shoulder'], cues:'Hands slightly wider than shoulders, body in one straight line — lower until your chest nearly touches the floor, then press back up.', tips:['Elevate your hands on a bench or step for an easier variation','If your shoulders are fatigued from bouldering, keep these light or swap for a bench variation'] },
-    { id:'db-bench',     name:'Dumbbell Bench Press',   emoji:'🛋️', cat:'push',     type:'reps', equip:'bench',       sets:3, reps:10, rest:90,  injExclude:['shoulder'], cues:'Lie flat, dumbbells at chest level — press straight up and lower slowly under full control.', tips:['Keep your shoulder blades retracted and pressed into the bench throughout','2-second lowering phase builds significantly more strength than dropping the weight'] },
-    { id:'db-ohp',       name:'Overhead Press',         emoji:'🙌', cat:'shoulder', type:'reps', equip:'dumbbell',    sets:3, reps:10, rest:90,  injExclude:['shoulder'], cues:'Dumbbells at ear height — press straight overhead and lower slowly. Brace your core to avoid arching your back.', tips:['Rest this one if your shoulders are sore after a hard bouldering session','Seated variation removes the temptation to use your legs for momentum'] },
+    { id:'push-up',      name:'Push-up',                emoji:'🤸', video:'push-up.mp4', cat:'push',     type:'reps', equip:'bodyweight',  sets:3, reps:12, rest:60,  injExclude:['shoulder'], cues:'Hands slightly wider than shoulders, body in one straight line — lower until your chest nearly touches the floor, then press back up.', tips:['Elevate your hands on a bench or step for an easier variation','If your shoulders are fatigued from bouldering, keep these light or swap for a bench variation'] },
+    { id:'db-bench',     name:'Dumbbell Bench Press',   emoji:'🛋️', video:'db-bench.mp4', cat:'push',     type:'reps', equip:'bench',       sets:3, reps:10, rest:90,  injExclude:['shoulder'], cues:'Lie flat, dumbbells at chest level — press straight up and lower slowly under full control.', tips:['Keep your shoulder blades retracted and pressed into the bench throughout','2-second lowering phase builds significantly more strength than dropping the weight'] },
+    { id:'db-ohp',       name:'Overhead Press',         emoji:'🙌', video:'db-ohp.mp4', cat:'shoulder', type:'reps', equip:'dumbbell',    sets:3, reps:10, rest:90,  injExclude:['shoulder'], cues:'Dumbbells at ear height — press straight overhead and lower slowly. Brace your core to avoid arching your back.', tips:['Rest this one if your shoulders are sore after a hard bouldering session','Seated variation removes the temptation to use your legs for momentum'] },
     // UPPER PULL
-    { id:'db-row',       name:'Single-Arm Row',         emoji:'🚣', cat:'pull',     type:'reps', equip:'bench',       sets:3, reps:10, rest:90,  sides:true, injExclude:[], cues:'Hand and knee on bench, dumbbell hanging — drive your elbow back and up, squeezing your lat at the top.', tips:['Think "elbow to hip pocket" not "hand to ceiling"','Keep your lower back flat and avoid rotating your torso to compensate'] },
-    { id:'bent-row',     name:'Bent-over Row',          emoji:'🏗️', cat:'pull',     type:'reps', equip:'dumbbell',    sets:3, reps:10, rest:90,  injExclude:['lower-back'], cues:'Hip hinge position, dumbbells hanging — row both simultaneously, driving elbows back and squeezing shoulder blades together at the top.', tips:['Great pair with pressing movements to balance pushing and pulling strength','Keep your core braced throughout to protect your lower back'] },
+    { id:'db-row',       name:'Single-Arm Row',         emoji:'🚣', video:'db-row.mp4', cat:'pull',     type:'reps', equip:'bench',       sets:3, reps:10, rest:90,  sides:true, injExclude:[], cues:'Hand and knee on bench, dumbbell hanging — drive your elbow back and up, squeezing your lat at the top.', tips:['Think "elbow to hip pocket" not "hand to ceiling"','Keep your lower back flat and avoid rotating your torso to compensate'] },
+    { id:'bent-row',     name:'Bent-over Row',          emoji:'🏗️', video:'bent-row.mp4', cat:'pull',     type:'reps', equip:'dumbbell',    sets:3, reps:10, rest:90,  injExclude:['lower-back'], cues:'Hip hinge position, dumbbells hanging — row both simultaneously, driving elbows back and squeezing shoulder blades together at the top.', tips:['Great pair with pressing movements to balance pushing and pulling strength','Keep your core braced throughout to protect your lower back'] },
     // SHOULDER
-    { id:'lateral-raise',name:'Lateral Raise',          emoji:'✈️', cat:'shoulder', type:'reps', equip:'dumbbell',    sets:3, reps:12, rest:60,  injExclude:['shoulder'], cues:'Slight bend in elbows, raise dumbbells out to the side until parallel with the floor — lower slowly and with control.', tips:['Light weight and slow lowering beats heavy and sloppy every time','Leading with your pinky slightly better targets the lateral deltoid'] },
+    { id:'lateral-raise',name:'Lateral Raise',          emoji:'✈️', video:'lateral-raise.mp4', cat:'shoulder', type:'reps', equip:'dumbbell',    sets:3, reps:12, rest:60,  injExclude:['shoulder'], cues:'Slight bend in elbows, raise dumbbells out to the side until parallel with the floor — lower slowly and with control.', tips:['Light weight and slow lowering beats heavy and sloppy every time','Leading with your pinky slightly better targets the lateral deltoid'] },
     // ARMS
-    { id:'db-curl',      name:'Dumbbell Curl',          emoji:'💪', cat:'arms',     type:'reps', equip:'dumbbell',    sets:3, reps:12, rest:45,  injExclude:[], cues:'Upper arms fixed at your sides — curl the dumbbells through a full range of motion, squeeze at the top and lower slowly.', tips:['Bouldering works your biceps hard — keep these light after a climbing session','Alternate arms or do both together, whichever gives you better control'] },
-    { id:'tricep-ext',   name:'Tricep Extension',       emoji:'⚙️', cat:'arms',     type:'reps', equip:'dumbbell',    sets:3, reps:12, rest:45,  injExclude:['shoulder'], cues:'Hold one dumbbell overhead with both hands — lower it behind your head by bending your elbows only, then extend back up.', tips:['Keep your upper arms close to your head throughout the movement','Pairs naturally with curls — push/pull supersets are very time-efficient'] },
-    { id:'tricep-dip',   name:'Tricep Dip',             emoji:'⬇️', cat:'arms',     type:'reps', equip:'bench',       sets:3, reps:10, rest:60,  injExclude:['shoulder'], cues:'Hands on bench behind you, hips off — lower yourself by bending your elbows, keep your back close to the bench, then press back up.', tips:['Skip this if your elbows or shoulders are sore from climbing','Straighten your legs out in front to make it harder; bend them to make it easier'] },
+    { id:'db-curl',      name:'Dumbbell Curl',          emoji:'💪', video:'db-curl.mp4', videoVariant:'db-curl-variant.mp4', variantLabel:'Hammer curl variant', cat:'arms',     type:'reps', equip:'dumbbell',    sets:3, reps:12, rest:45,  injExclude:[], cues:'Upper arms fixed at your sides — curl the dumbbells through a full range of motion, squeeze at the top and lower slowly.', tips:['Bouldering works your biceps hard — keep these light after a climbing session','Alternate arms or do both together, whichever gives you better control'] },
+    { id:'tricep-ext',   name:'Tricep Extension',       emoji:'⚙️', video:'tricep-ext.mp4', cat:'arms',     type:'reps', equip:'dumbbell',    sets:3, reps:12, rest:45,  injExclude:['shoulder'], cues:'Hold one dumbbell overhead with both hands — lower it behind your head by bending your elbows only, then extend back up.', tips:['Keep your upper arms close to your head throughout the movement','Pairs naturally with curls — push/pull supersets are very time-efficient'] },
+    { id:'tricep-dip',   name:'Tricep Dip',             emoji:'⬇️', video:'tricep-dip.mp4', cat:'arms',     type:'reps', equip:'bench',       sets:3, reps:10, rest:60,  injExclude:['shoulder'], cues:'Hands on bench behind you, hips off — lower yourself by bending your elbows, keep your back close to the bench, then press back up.', tips:['Skip this if your elbows or shoulders are sore from climbing','Straighten your legs out in front to make it harder; bend them to make it easier'] },
   ];
+
+  // ═══════════════════════════════════════════════
+  // MOBILITY CATALOG
+  // ═══════════════════════════════════════════════
+  const MOBILITY = [
+    { id:'mob-hip-flexor',  name:'Hip Flexor Lunge Stretch',            video:'mob-hip-flexor.mp4',  rx:'60 sec each side · posterior tilt to feel the pull', cues:'Rear knee down, front foot forward, tuck your pelvis under to feel the stretch through the front of the rear hip.', tips:['A slight posterior pelvic tilt is what actually creates the stretch','Keep your torso upright rather than leaning forward'] },
+    { id:'mob-pigeon',      name:'IT Band / Pigeon Pose',               video:'mob-pigeon.mp4',      rx:'90 sec each side · breathe into the hip', cues:'Front shin angled across your body, back leg extended straight behind — fold forward as far as comfortable.', tips:['Sit on a folded towel if your hips are tight to start','Never force it — this is a slow-release stretch, not a stretch to fight through'] },
+    { id:'mob-9090',        name:'90/90 Hip Rotation',                  video:'mob-9090.mp4',        rx:'60 sec each side · internal + external rotation', cues:'Both knees bent to 90°, one in front and one to the side — rotate between both hips staying tall through your spine.', tips:['Keep your chest up rather than collapsing forward','Move slowly through the transition — this is about control, not speed'] },
+    { id:'mob-thoracic',    name:'Thoracic Rotation (Thread the Needle)', video:'mob-thoracic.mp4',  rx:'10 slow reps each side · open the upper back', cues:'On hands and knees, thread one arm under your body and rotate, then reverse and open up toward the ceiling.', tips:['Let your eyes follow your top hand on the rotation open','Keep your hips still — all the motion should come from your upper back'] },
+    { id:'mob-calf',        name:'Calf & Achilles Stretch',              video:'mob-calf.mp4',       rx:'60 sec each · straight leg then bent knee', cues:'Hands on wall, back leg extended, heel pressed down. Straight leg targets the calf, bent knee targets the Achilles.', tips:['Keep the back heel glued to the floor the entire time','Do the straight-leg version first, then bend the knee for the deeper Achilles stretch'] },
+    { id:'mob-hamstring',   name:'Standing Hamstring Sweep',             video:'mob-hamstring.mp4',  rx:'10 slow reps each leg · keep spine neutral', cues:'Hinge forward reaching toward your foot, then sweep back up to standing — keep a soft bend in your knee throughout.', tips:['This is dynamic, not a static hold — keep it moving with control','Stop the descent wherever you feel a stretch, don\'t force further'] },
+    { id:'mob-childs-pose', name:'Child\'s Pose with Lat Reach',         video:'mob-childs-pose.mp4', rx:'60 sec · decompress the spine · breathe', cues:'Sit back onto your heels, arms reaching long overhead, forehead down — let your lower back fully decompress.', tips:['Walk your hands slightly to one side then the other to open each lat','Breathe deep into your back rather than your chest'] },
+  ];
+
+  // ═══════════════════════════════════════════════
+  // WARM-UP CATALOG (dynamic, pre-run)
+  // ═══════════════════════════════════════════════
+  const WARMUP = [
+    { id:'warm-leg-swing-fb',  name:'Leg Swings (Front/Back)',    video:'warm-leg-swing-fb.mp4',  type:'time', dur:20, sides:true,  cues:'Hold something for balance, swing one leg forward and back in a controlled arc — gradually increase the range.' },
+    { id:'warm-leg-swing-lat', name:'Leg Swings (Lateral)',       video:'warm-leg-swing-lat.mp4', type:'time', dur:20, sides:true,  cues:'Swing one leg side to side across your body, keeping your torso stable and upright.' },
+    { id:'warm-hip-circle',    name:'Hip Circles',                video:'warm-hip-circle.mp4',    type:'time', dur:25, sides:true,  cues:'Hands on hips, draw large slow circles — half the reps one direction, half the other.' },
+    { id:'warm-high-knees',    name:'Walking High Knees',          video:'warm-high-knees.mp4',    type:'time', dur:30, sides:false, cues:'Walk forward driving your knees up to hip height each step, staying tall through your torso.' },
+    { id:'warm-butt-kicks',    name:'Butt Kicks',                  video:'warm-butt-kicks.mp4',    type:'time', dur:30, sides:false, cues:'Jog in place or forward, kicking your heels back toward your glutes each stride.' },
+    { id:'warm-lunge-rotation',name:'Walking Lunge + Rotation',    video:'warm-lunge-rotation.mp4', type:'time', dur:45, sides:false, cues:'Step into a lunge, rotate your torso over the front leg, then step through into the next lunge.' },
+    { id:'warm-ankle-circle',  name:'Ankle Circles',               video:'warm-ankle-circle.mp4',  type:'time', dur:20, sides:true,  cues:'Lift one foot slightly off the ground and draw slow circles at the ankle — both directions.' },
+    { id:'warm-inchworm',      name:'Inchworm',                    video:'warm-inchworm.mp4',      type:'time', dur:35, sides:false, cues:'Hinge down to touch the floor, walk your hands out to a plank, then walk your feet up to meet your hands.' },
+  ];
+
+  function findMovement(id) {
+    return MOVEMENTS.find(m => m.id === id) || WARMUP.find(m => m.id === id) || MOBILITY.find(m => m.id === id);
+  }
+
+  function renderMobilityList() {
+    const list = document.getElementById('mobility-list');
+    if (!list) return;
+    list.innerHTML = MOBILITY.map(m => `
+      <div class="movement-item" data-mov-id="${m.id}">
+        <div class="mov-thumb" onclick="openMovDetail('${m.id}')">
+          <video src="videos/${m.video}" autoplay loop muted playsinline preload="auto"></video>
+        </div>
+        <div class="mov-info" onclick="toggleMovement(this.parentElement)">
+          <div class="mn">${m.name}</div>
+          <div class="mrx">${m.rx}</div>
+        </div>
+        <div class="mov-check" onclick="toggleMovement(this.parentElement)"></div>
+      </div>`).join('');
+  }
+
+  function initMobility() { renderMobilityList(); }
 
   // ═══════════════════════════════════════════════
   // WORKOUT GENERATOR
@@ -3167,7 +3174,7 @@
         focusLabel = 'Posterior · Pull · Core';
         const hinge     = pickFrom('rdl', 'kb-deadlift', 'good-morning');
         const pull      = pickFrom('db-row', 'bent-row');
-        const glute     = pickFrom('hip-thrust', 'glute-bridge');
+        const glute     = pickFrom('glute-bridge');
         const singleLeg = pickFrom('bss', 'sl-rdl', 'step-up', 'rev-lunge');
         const core      = pickFrom('dead-bug', 'bird-dog', 'hollow-hold');
         const finArm    = pickFrom('db-curl', 'tricep-dip');
@@ -3186,7 +3193,7 @@
       // Full Body B — quad/push/shoulder emphasis
       } else {
         focusLabel = 'Quad · Push · Shoulder · Arms';
-        const power     = pickFrom('box-jump', 'jump-squat', 'broad-jump');
+        const power     = pickFrom('box-jump', 'jump-squat');
         const quad      = pickFrom('goblet-squat', 'box-squat');
         const push      = pickFrom('push-up', 'db-bench');
         const shoulder  = pickFrom('db-ohp', 'lateral-raise');
@@ -3210,10 +3217,10 @@
       if (sessionType === 'A') {
         focusLabel = 'Posterior Chain · Glutes · Core';
         const hinge     = pickFrom('rdl', 'kb-deadlift', 'good-morning');
-        const glute     = pickFrom('hip-thrust', 'glute-bridge');
+        const glute     = pickFrom('glute-bridge');
         const singleLeg = pickFrom('bss', 'sl-rdl', 'step-up', 'rev-lunge');
         const core1     = pickFrom('dead-bug', 'bird-dog', 'hollow-hold');
-        const core2     = pickFrom('cop-plank', 'side-plank');
+        const core2     = pickFrom('cop-plank', 'plank');
         const calf      = pickFrom('sl-calf', 'tib-raise');
 
         if (hinge)    parts.push({ label:'Part 1', sets:hinge.sets, rest:hinge.rest, superset:false, moves:[hinge] });
@@ -3228,11 +3235,11 @@
       // Lower Body B — power + quad + single-leg
       } else {
         focusLabel = 'Power · Quad · Single-leg';
-        const power     = pickFrom('box-jump', 'jump-squat', 'broad-jump');
+        const power     = pickFrom('box-jump', 'jump-squat');
         const quad      = pickFrom('goblet-squat', 'box-squat');
         const singleLeg = pickFrom('bss', 'step-up', 'rev-lunge');
         const posterior = pickFrom('rdl', 'kb-deadlift');
-        const core      = pickFrom('dead-bug', 'bird-dog', 'hollow-hold', 'side-plank');
+        const core      = pickFrom('dead-bug', 'bird-dog', 'hollow-hold', 'plank');
         const calf      = pickFrom('sl-calf', 'tib-raise');
 
         if (power)     parts.push({ label:'Power',  sets:power.sets,    rest:power.rest,    superset:false, moves:[power] });
@@ -3252,7 +3259,7 @@
         const pull     = pickFrom('bent-row', 'db-row');
         const arm1     = pickFrom('db-curl');
         const arm2     = pickFrom('tricep-ext', 'tricep-dip');
-        const core     = pickFrom('dead-bug', 'hollow-hold', 'cop-plank', 'side-plank');
+        const core     = pickFrom('dead-bug', 'hollow-hold', 'cop-plank', 'plank');
 
         if (push)     parts.push({ label:'Part 1', sets:push.sets,     rest:push.rest,     superset:false, moves:[push] });
         if (shoulder) parts.push({ label:'Part 2', sets:shoulder.sets, rest:shoulder.rest, superset:false, moves:[shoulder] });
@@ -3272,7 +3279,7 @@
         const arm1     = pickFrom('tricep-ext', 'tricep-dip');
         const arm2     = pickFrom('db-curl');
         const core1    = pickFrom('dead-bug', 'bird-dog', 'hollow-hold');
-        const core2    = pickFrom('cop-plank', 'side-plank');
+        const core2    = pickFrom('cop-plank', 'plank');
 
         if (pull)  parts.push({ label:'Part 1', sets:pull.sets,  rest:pull.rest,  superset:false, moves:[pull] });
         if (push && shoulder)
@@ -3289,7 +3296,7 @@
 
     } else if (focus === 'core') {
       focusLabel = 'Anti-rotation · Stability · Bracing';
-      const corePool = ['dead-bug','bird-dog','hollow-hold','cop-plank','side-plank'];
+      const corePool = ['dead-bug','bird-dog','hollow-hold','cop-plank','plank'];
       const shuffled = corePool.filter(avail).sort(() => Math.random() - 0.5).slice(0, 4);
       shuffled.forEach((id, i) => {
         const m = MOVEMENTS.find(m => m.id === id);
@@ -3309,6 +3316,21 @@
       estMin: Math.max(30, Math.min(estMin, 65)),
       parts,
     };
+  }
+
+  function generateWarmup() {
+    return {
+      name: 'Pre-Run Warm-up',
+      sessionType: 'warmup',
+      focus: 'Dynamic movement · Activation',
+      equipment: [],
+      estMin: 5,
+      parts: WARMUP.map((m, i) => ({ label: `${i + 1} / ${WARMUP.length}`, sets: 1, rest: 0, superset: false, moves: [m] })),
+    };
+  }
+
+  function startWarmup() {
+    _beginSession(generateWarmup());
   }
 
   // ═══════════════════════════════════════════════
@@ -3429,8 +3451,12 @@
   let SES = null;
 
   function startSession() {
-    requestWakeLock();
     const wo = _currentWorkout || generateWorkout(_currentSessionType);
+    _beginSession(wo);
+  }
+
+  function _beginSession(wo) {
+    requestWakeLock();
     SES = {
       wo,
       partIdx: 0, setIdx: 0, movIdx: 0, sideIdx: 0,
@@ -3439,6 +3465,7 @@
       countdownVal: 0,
       countdownInterval: null,
       countdownRunning: false,
+      showVariant: false,
       weights: {},
     };
     document.getElementById('so-workout-label').textContent = wo.name;
@@ -3507,9 +3534,17 @@
       </div>`;
 
     // Animation area
+    const activeVideo = (SES.showVariant && mov.videoVariant) ? mov.videoVariant : mov.video;
+    const videoHtml = activeVideo
+      ? `<video src="videos/${activeVideo}" autoplay loop muted playsinline preload="auto"></video>`
+      : `<span>${mov.emoji}</span>`;
+    const variantHtml = mov.videoVariant
+      ? `<span class="so-variant-link" onclick="event.stopPropagation();toggleVariant()">${SES.showVariant ? mov.name : mov.variantLabel || 'Variant'}</span>`
+      : '';
     const animArea = `
       <div class="so-anim-wrap" onclick="openMovDetail('${mov.id}')">
-        <span>${mov.emoji}</span>
+        ${videoHtml}
+        ${variantHtml}
         <span class="so-anim-hint">Tips &amp; cues</span>
       </div>`;
 
@@ -3613,6 +3648,13 @@
     }, 1000);
   }
 
+  // ─── VIDEO VARIANT ──────────────────────────────
+  function toggleVariant() {
+    if (!SES) return;
+    SES.showVariant = !SES.showVariant;
+    renderActiveStep();
+  }
+
   // ─── NAVIGATION ─────────────────────────────────
   function _saveCurrentWeight() {
     if (!SES) return;
@@ -3629,6 +3671,7 @@
     clearInterval(SES.countdownInterval);
     SES.countdownRunning = false;
     SES.sideIdx = 0;
+    SES.showVariant = false;
     _advanceStep();
   }
 
@@ -3658,6 +3701,7 @@
     clearInterval(SES.countdownInterval);
     SES.countdownRunning = false;
     SES.sideIdx = 0;
+    SES.showVariant = false;
     const part = SES.wo.parts[SES.partIdx];
     if (SES.movIdx > 0) {
       SES.movIdx--;
@@ -3679,7 +3723,9 @@
     if (!SES) return;
     clearInterval(SES.sessionInterval);
     clearInterval(SES.countdownInterval);
-    localStorage.setItem('tbf-last-strength', SES.wo.sessionType);
+    if (SES.wo.sessionType === 'A' || SES.wo.sessionType === 'B') {
+      localStorage.setItem('tbf-last-strength', SES.wo.sessionType);
+    }
     SES = null;
     document.getElementById('session-overlay').classList.remove('active');
     if (typeof releaseWakeLock === 'function') releaseWakeLock();
@@ -3688,7 +3734,7 @@
 
   // ─── MOVEMENT DETAIL ────────────────────────────
   function openMovDetail(movId) {
-    const mov = MOVEMENTS.find(m => m.id === movId);
+    const mov = findMovement(movId);
     if (!mov) return;
     const units = loadData().settings?.units === 'mi' ? 'lb' : 'kg';
     const last = getLastWeight(movId);
@@ -3703,14 +3749,16 @@
         <div class="tip-num">${i+1}</div>
         <div>${t}</div>
       </div>`).join('');
+    const animHtml = mov.video
+      ? `<video src="videos/${mov.video}" autoplay loop muted playsinline preload="auto"></video>`
+      : mov.emoji;
 
     document.getElementById('mov-detail-content').innerHTML = `
-      <div class="mov-detail-anim">${mov.emoji}</div>
+      <div class="mov-detail-anim">${animHtml}</div>
       <div class="mov-detail-name">${mov.name}</div>
-      <div class="mov-detail-cues">${mov.cues}</div>
+      <div class="mov-detail-cues">${mov.cues || mov.rx || ''}</div>
       ${lastHtml}
-      <div class="label" style="margin-bottom:var(--sp-sm)">Tips</div>
-      <div class="mov-detail-tips">${tipsHtml}</div>
+      ${tipsHtml ? `<div class="label" style="margin-bottom:var(--sp-sm)">Tips</div><div class="mov-detail-tips">${tipsHtml}</div>` : ''}
       <button class="btn btn-secondary btn-full" style="margin-top:var(--sp-md)" onclick="closeMovDetail()">Return to Workout</button>
     `;
     openSheet('sheet-mov-detail');
@@ -3733,6 +3781,7 @@
     initInjury();
     initStrengthFocus();
     initStrength();
+    initMobility();
     initInstallPrompt();
     initProgress();
   });
