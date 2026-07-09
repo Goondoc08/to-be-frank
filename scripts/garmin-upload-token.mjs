@@ -5,8 +5,9 @@
 //
 // Usage:
 //   npm install
-//   GARMIN_TOKEN_PATH=./.garmin-tokens npx garmin-connect-sdk@alpha profile
+//   GARMIN_TOKEN_PATH=./.garmin-tokens npx garmin-connect profile
 //   node garmin-upload-token.mjs
+// (the package is garmin-connect-sdk, but its CLI bin is named garmin-connect)
 import { FileTokenStorage } from "garmin-connect-sdk";
 
 const SUPABASE_URL = "https://htnxrfjdsdevfvyrhrdb.supabase.co";
@@ -19,7 +20,7 @@ const tokens = await storage.load();
 
 if (!tokens) {
   console.error(`No tokens found at ${TOKEN_PATH}. Run the login step first:`);
-  console.error(`  GARMIN_TOKEN_PATH=${TOKEN_PATH} npx garmin-connect-sdk@alpha profile`);
+  console.error(`  GARMIN_TOKEN_PATH=${TOKEN_PATH} npx garmin-connect profile`);
   process.exit(1);
 }
 

@@ -53,8 +53,12 @@ Built and deployed:
 ```
 cd "To Be Frank/scripts"
 npm install
-GARMIN_TOKEN_PATH=./.garmin-tokens npx garmin-connect-sdk@alpha profile
 ```
+Then set the env var and run the login CLI — syntax depends on your shell:
+- **cmd.exe:** `set GARMIN_TOKEN_PATH=./.garmin-tokens && npx garmin-connect profile`
+- **PowerShell:** `$env:GARMIN_TOKEN_PATH=".\.garmin-tokens"; npx garmin-connect profile`
+- **bash/zsh:** `GARMIN_TOKEN_PATH=./.garmin-tokens npx garmin-connect profile`
+
 This prompts for Garmin email, password, and an MFA code if Garmin asks for one — all normal terminal prompts, nothing to build. Then:
 ```
 node garmin-upload-token.mjs
