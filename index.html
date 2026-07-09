@@ -1253,6 +1253,15 @@
     }
     .so-anim-wrap img { width: 100%; height: 100%; object-fit: contain; }
     .so-anim-wrap video { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+    /* Warm-up movements have large limb swings — cover-crop clips them, so show the full frame instead */
+    .so-anim-wrap.warmup-anim { aspect-ratio: 3/4; }
+    .so-anim-wrap.warmup-anim video { object-fit: contain; object-position: center; }
+    .so-prep-label {
+      position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+      font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+      color: var(--text-tertiary); background: rgba(25,25,28,0.85);
+      padding: 4px 10px; border-radius: var(--r-pill); border: 1px solid var(--border);
+    }
     .so-variant-link {
       position: absolute; bottom: 8px; left: 8px;
       font-size: 10px; font-weight: 600; color: var(--text-tertiary);
@@ -2235,7 +2244,7 @@
   <div class="so-progress-bar"><div class="so-progress-fill" id="so-progress" style="width:0%"></div></div>
   <div class="so-body" id="so-body"><!-- rendered --></div>
   <div class="so-nav">
-    <button class="btn btn-secondary" style="min-width:72px" onclick="prevStep()">← Back</button>
+    <button class="btn btn-secondary" style="min-width:72px" id="so-back-btn" onclick="prevStep()">← Back</button>
     <button class="btn btn-primary btn-full" id="so-next-btn" onclick="nextStep()">Next →</button>
   </div>
 </div>
@@ -3329,10 +3338,6 @@
     };
   }
 
-  function startWarmup() {
-    _beginSession(generateWarmup());
-  }
-
   // ═══════════════════════════════════════════════
   // WEIGHT HISTORY
   // ═══════════════════════════════════════════════
@@ -3452,10 +3457,14 @@
 
   function startSession() {
     const wo = _currentWorkout || generateWorkout(_currentSessionType);
-    _beginSession(wo);
+    _beginSession(wo, false);
   }
 
-  function _beginSession(wo) {
+  function startWarmup() {
+    _beginSession(generateWarmup(), true);
+  }
+
+  function _beginSession(wo, autoMode) {
     requestWakeLock();
     SES = {
       wo,
@@ -3467,13 +3476,20 @@
       countdownRunning: false,
       showVariant: false,
       weights: {},
+      autoMode: !!autoMode,
+      phase: autoMode ? 'prep' : 'exercise',
     };
     document.getElementById('so-workout-label').textContent = wo.name;
     document.getElementById('session-overlay').classList.add('active');
     SES.sessionInterval = setInterval(_tickSession, 1000);
     const firstMov = wo.parts[0].moves[0];
-    if (firstMov.type === 'time') SES.countdownVal = firstMov.dur || 20;
+    if (autoMode) {
+      SES.countdownVal = 15; // "get ready" prep before the first movement
+    } else if (firstMov.type === 'time') {
+      SES.countdownVal = firstMov.dur || 20;
+    }
     renderActiveStep();
+    if (autoMode) _runAutoCountdown();
   }
 
   function _tickSession() {
@@ -3524,7 +3540,18 @@
     const isLast = SES.partIdx === wo.parts.length - 1
       && SES.setIdx === part.sets - 1
       && SES.movIdx === part.moves.length - 1;
-    document.getElementById('so-next-btn').textContent = isLast ? 'Finish Workout ✓' : 'Next →';
+
+    const backBtn = document.getElementById('so-back-btn');
+    const nextBtn = document.getElementById('so-next-btn');
+
+    if (SES.autoMode) {
+      if (backBtn) backBtn.style.display = 'none';
+      if (nextBtn) { nextBtn.textContent = 'Skip →'; nextBtn.onclick = autoSkip; }
+      renderAutoStep(mov, hasSides, dur);
+      return;
+    }
+    if (backBtn) backBtn.style.display = '';
+    if (nextBtn) { nextBtn.textContent = isLast ? 'Finish Workout ✓' : 'Next →'; nextBtn.onclick = nextStep; }
 
     // Part header
     const partHd = `
@@ -3613,6 +3640,96 @@
       : '';
 
     document.getElementById('so-body').innerHTML = partHd + animArea + movInfo + dots + inputHtml + restHtml;
+  }
+
+  // ─── AUTO-ADVANCING SESSION (warm-up) ───────────
+  function renderAutoStep(mov, hasSides, dur) {
+    const isPrep = SES.phase === 'prep';
+    const videoHtml = mov.video
+      ? `<video src="videos/${mov.video}" autoplay loop muted playsinline preload="auto"></video>`
+      : `<span>${mov.emoji || ''}</span>`;
+    const prepBadge = isPrep ? `<span class="so-prep-label">Up Next</span>` : '';
+    const animArea = `
+      <div class="so-anim-wrap warmup-anim" onclick="openMovDetail('${mov.id}')">
+        ${videoHtml}
+        ${prepBadge}
+        <span class="so-anim-hint">Tips &amp; cues</span>
+      </div>`;
+
+    const stepHd = `
+      <div class="so-part-hd">
+        <span class="so-part-name">Movement ${SES.partIdx + 1} of ${SES.wo.parts.length}</span>
+      </div>`;
+
+    const rx = hasSides ? `${dur}s each side` : `${dur}s`;
+    const movInfo = `
+      <div class="so-mov-name">${mov.name}</div>
+      <div class="so-mov-rx">${rx}</div>`;
+
+    const sideLabel = hasSides ? (SES.sideIdx === 0 ? 'Left side' : 'Right side') : '';
+    const countdownLabel = isPrep ? 'Get ready' : (sideLabel || 'Go');
+    const countdownHtml = `
+      <div class="so-countdown-wrap">
+        <div class="so-countdown running" id="so-countdown">${SES.countdownVal}</div>
+        <div class="so-countdown-side">${countdownLabel}</div>
+      </div>`;
+
+    document.getElementById('so-body').innerHTML = stepHd + animArea + movInfo + countdownHtml;
+  }
+
+  function _runAutoCountdown() {
+    if (!SES || !SES.autoMode) return;
+    clearInterval(SES.countdownInterval);
+    SES.countdownRunning = true;
+    SES.countdownInterval = setInterval(() => {
+      SES.countdownVal--;
+      const el = document.getElementById('so-countdown');
+      if (el) el.textContent = SES.countdownVal;
+      if (SES.countdownVal <= 0) {
+        clearInterval(SES.countdownInterval);
+        _autoAdvance();
+      }
+    }, 1000);
+  }
+
+  function _autoAdvance() {
+    if (!SES) return;
+    const part = SES.wo.parts[SES.partIdx];
+    const mov = part.moves[SES.movIdx];
+
+    if (SES.phase === 'prep') {
+      SES.phase = 'exercise';
+      SES.sideIdx = 0;
+      SES.countdownVal = mov.dur || 20;
+      renderActiveStep();
+      _runAutoCountdown();
+      return;
+    }
+
+    if (mov.sides && SES.sideIdx === 0) {
+      SES.sideIdx = 1;
+      SES.countdownVal = mov.dur || 20;
+      renderActiveStep();
+      _runAutoCountdown();
+      return;
+    }
+
+    if (SES.partIdx >= SES.wo.parts.length - 1) {
+      endSession();
+      return;
+    }
+    SES.partIdx++;
+    SES.sideIdx = 0;
+    SES.phase = 'prep';
+    SES.countdownVal = 15;
+    renderActiveStep();
+    _runAutoCountdown();
+  }
+
+  function autoSkip() {
+    if (!SES || !SES.autoMode) return;
+    clearInterval(SES.countdownInterval);
+    _autoAdvance();
   }
 
   // ─── COUNTDOWN ──────────────────────────────────
