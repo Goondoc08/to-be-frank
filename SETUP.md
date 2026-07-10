@@ -91,7 +91,24 @@ The `generate-plan` Edge Function uses `ANTHROPIC_API_KEY` server-side (never in
 
 ### Still to build (next increment — the adaptive layer)
 - **`adjust-plan` Edge Function (Haiku)** + a **daily trigger**: a lightweight once-a-day pass that eases *upcoming, non-pinned, non-completed* days when readiness is low or Frank had a big bouldering/tennis/heavy load. Conservative (touches only today + next day or two, never rewrites the week), with a one-line reason. Haiku for cost since it runs often. **The load signal is already wired** — `buildActivitySummary` now includes `recentOtherLoad` (see §8), so `adjust-plan` just consumes it.
-- **Editable calendar** (chosen UX = enhanced week list + "Move to day"): per-session ⋮ → move to another day / skip / pin. Manual moves pin the session so neither the daily nudge nor regeneration disturbs it.
+- **Editable calendar — BUILT (drag-to-move), see §9 below.** Remaining nicety: a "skip / make rest" action and an explicit unpin (currently moving is the only way to pin; there's no manual unpin yet).
+
+---
+
+## 9. Editable calendar (drag-to-move) — built, client-only, needs push (2026-07-09)
+
+Frank can rearrange his plan by dragging sessions between days.
+
+- Each session card in the Plan tab has a **grip handle** (`.psc-grip`, six-dot icon). Dragging the grip picks the session up (a floating clone follows the pointer), the target day highlights, and dropping **swaps** the two days. Implemented with **Pointer Events** (`initPlanDrag`) so it works with touch on iOS — the grip has `touch-action:none`; the rest of the card scrolls normally and a tap still opens the session sheet (the grip has `onclick=event.stopPropagation()`).
+- A moved session is **pinned** (`day.pinned=true`, shown as 📌). `mapWeekToData` carries the flag; `moveSession(from,to)` swaps + pins + persists + re-renders (plan view, Today hero, week strip).
+- **Regeneration respects pins:** `generateWeek` keeps any pinned day in the live week when it rebuilds from the API, so Frank's manual arrangement isn't clobbered. The future `adjust-plan` daily pass must do the same (skip `pinned` days).
+- Works on both the live and projected week (operates on `_planWeeks[_viewWeek]`).
+
+**Verified in preview:** grips render (one per session), a real simulated pointer drag (down→move→up) moves a session to the target day and pins it, the drop-target highlights mid-drag, Today hero updates when the moved day is today, tapping the card body still opens the sheet, and tapping the grip does not.
+
+**⚠️ Build gotcha for next time:** a pinned-badge `title` attribute originally used `won\\'t` inside a single-quoted string in a template literal — the `\\'` terminated the string early and broke the *entire* `<script>` (every function became undefined, no console error surfaced in the preview tool). Fixed by avoiding the apostrophe. When embedding text in these inline strings, avoid apostrophes or escape with a single `\'`.
+
+**No deploy** — purely client. Commit + push `index.html` + `sw.js` (bumped v6→v7).
 
 ---
 

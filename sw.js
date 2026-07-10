@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tbf-v6';
+const CACHE_NAME = 'tbf-v7';
 const ASSETS = [
   './',
   './index.html',
