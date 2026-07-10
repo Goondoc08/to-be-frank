@@ -45,9 +45,9 @@ Built and deployed:
 - [x] `supabase/migrations/20260709010000_garmin_tokens_v2.sql` — `garmin_tokens(athlete, tokens jsonb)`, RLS on with zero policies (service_role only)
 - [x] Profile tab "Garmin Connect" sheet updated — no password fields; shows live Connected/Not connected status pulled from `garmin-data`, with a "Check connection again" button
 
-**Not connected yet.** A first attempt on 2026-07-09 silently logged into Nicholas's own Garmin account instead of Frank's — his machine has `GARMIN_EMAIL`/`GARMIN_PASSWORD` set as persistent environment variables (from his separate NAM Fitness Garmin integration), and `createGarminFromCli` does `process.env.GARMIN_EMAIL ?? (prompt)`, so it silently used those instead of asking. No prompts appeared, which was the tell. That wrong token has been deleted from Supabase and the local machine.
+**Connected — 2026-07-09.** A first attempt that day silently logged into Nicholas's own Garmin account instead of Frank's — his machine has `GARMIN_EMAIL`/`GARMIN_PASSWORD` set as persistent environment variables (from his separate NAM Fitness Garmin integration), and `createGarminFromCli` does `process.env.GARMIN_EMAIL ?? (prompt)`, so it silently used those instead of asking. No prompts appeared, which was the tell. That wrong token was deleted from Supabase and the local machine. A retry then hit Garmin's login rate limit (`429`) — likely from the back-to-back wrong-account and real attempts — which cleared after a few hours. The real attempt (env vars cleared first) actually prompted for credentials (`"restoredSession": false`), Frank's login succeeded, and the app now shows "Connected" with 10 real activities (running, cycling) pulled through.
 
-**To actually connect Frank's account, run this once from a computer with Node 24+:**
+**To reconnect (e.g. if the session ever expires), run this once from a computer with Node 24+:**
 ```
 cd "To Be Frank/scripts"
 npm install
@@ -80,7 +80,7 @@ This reads the token the login step just saved and uploads it to Supabase. The a
 
 - [x] Deployed and verified booting cleanly (`404` "no session on file", not a boot error)
 - [x] Verified in the browser preview: builds the correct step structure from the DOM and POSTs it
-- [ ] **Not yet verified against a real connected Garmin account** — `WorkoutsEndpoint` is marked experimental by the SDK's own maintainer ("unstable until v1 release candidate"), so treat the first real push as a test, not a guarantee. If it fails, the button falls back gracefully ("Push failed — starting anyway") and Frank can still start the session locally
+- [ ] **Not yet verified against a real connected Garmin account** — now that Garmin is connected (above), this is the next thing to test. `WorkoutsEndpoint` is marked experimental by the SDK's own maintainer ("unstable until v1 release candidate"), so treat the first real push as a test, not a guarantee. If it fails, the button falls back gracefully ("Push failed — starting anyway") and Frank can still start the session locally
 - Deliberately **doesn't** set HR-zone or pace targets on the pushed steps (only durations + descriptions) — the app doesn't have Frank's actual zone/pace numbers, and fabricating them would put wrong guidance on his watch
 
 ---
