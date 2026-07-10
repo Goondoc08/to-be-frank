@@ -90,8 +90,26 @@ The `generate-plan` Edge Function uses `ANTHROPIC_API_KEY` server-side (never in
 **Deploy:** `supabase functions deploy generate-plan` (after the §6 auth rollout). Note: `output_config` sends both `effort` + `format`; if the first live call 502s with an upstream error in logs, drop the `effort` key.
 
 ### Still to build (next increment — the adaptive layer)
-- **`adjust-plan` Edge Function (Haiku)** + a **daily trigger**: a lightweight once-a-day pass that eases *upcoming, non-pinned, non-completed* days when readiness is low or Frank had a big bouldering/tennis/heavy load. Conservative (touches only today + next day or two, never rewrites the week), with a one-line reason. Haiku for cost since it runs often.
+- **`adjust-plan` Edge Function (Haiku)** + a **daily trigger**: a lightweight once-a-day pass that eases *upcoming, non-pinned, non-completed* days when readiness is low or Frank had a big bouldering/tennis/heavy load. Conservative (touches only today + next day or two, never rewrites the week), with a one-line reason. Haiku for cost since it runs often. **The load signal is already wired** — `buildActivitySummary` now includes `recentOtherLoad` (see §8), so `adjust-plan` just consumes it.
 - **Editable calendar** (chosen UX = enhanced week list + "Move to day"): per-session ⋮ → move to another day / skip / pin. Manual moves pin the session so neither the daily nudge nor regeneration disturbs it.
+
+---
+
+## 8. Unified activity log — built, client-only, needs push (2026-07-09)
+
+Everything Frank does now flows through one merged history that shows in Recent Activity / Progress **and** feeds the plan generator. Three sources:
+1. **Garmin** syncs (already there).
+2. **In-app completed** — finishing a guided strength session auto-logs it (`endSession(true)` → `addLog({source:'inapp', type:'strength', ...})`; the early-exit ✕ button does **not** log).
+3. **Manual** — the previously-dead "Log Manually Instead" button now opens a real **Log Activity** screen (`#view-log`): type chips (run/strength/mobility/tennis/bouldering/cycling/swim/other), date, duration, optional distance (respects mi/km setting), effort, note → saves to `data.logs`.
+
+Implementation (`index.html`, all client-side — **no Supabase deploy needed**, just commit + push; `sw.js` bumped v5→v6):
+- `logToActivity()` normalizes each local log into the Garmin activity shape, so the existing renderers + aggregators just work. `getMergedActivities()` = local logs + Garmin, date-sorted. `refreshActivityViews()` re-renders Recent + Detected + Progress from the merge; called after every Garmin fetch **and** every `addLog`.
+- Recent Activity tags each item's source ("Logged" / "In-app"; Garmin untagged).
+- `buildActivitySummary()` now runs off the merged list (manual runs count toward volume/pace) and adds **`recentOtherLoad`** (non-running activity in the last 5 days: type + minutes) — this is what lets the plan/adjust ease off after a big bouldering or tennis day. `generateWeek` feeds it `getMergedActivities()`.
+
+**Verified in preview:** logged a manual bouldering (→ Recent Activity "Bouldering · 90 min · Logged", `recentOtherLoad`), a manual run with distance (→ volume/pace in the summary), and a simulated in-app strength completion (→ "In-app" tagged, auto-logged). All three sources merge, sort, and feed the plan summary.
+
+**No deploy** — purely client. Commit + push `index.html` + `sw.js` to reach Frank's phone.
 
 ---
 

@@ -1718,7 +1718,7 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
           <span class="gp-label">Push to Garmin &amp; Start</span>
         </button>
-        <button class="btn btn-secondary btn-full" onclick="showView('log')">Log Manually Instead</button>
+        <button class="btn btn-secondary btn-full" onclick="openLogScreen()">Log Manually Instead</button>
       </div>
 
       <!-- ── STRENGTH PANEL ── -->
@@ -2056,6 +2056,68 @@
       </div>
 
     </div><!-- /view-profile -->
+
+    <!-- ═══════════════ LOG ACTIVITY ═══════════════ -->
+    <style>
+      .log-fl { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+      #view-log .login-input { font-size: 15px; padding: 11px 13px; }
+    </style>
+    <div class="view" id="view-log">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:var(--sp-md)">
+        <button class="icon-btn" onclick="showView('today','back')" aria-label="Back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15,18 9,12 15,6"/></svg>
+        </button>
+        <div style="font-size:20px;font-weight:700;letter-spacing:-0.4px">Log Activity</div>
+      </div>
+
+      <div class="settings-section">
+        <div class="label" style="margin-bottom:var(--sp-sm)">Activity type</div>
+        <div class="focus-grid" id="log-type-grid">
+          <div class="focus-chip" data-ltype="run" onclick="selectLogType(this)">🏃 Run</div>
+          <div class="focus-chip" data-ltype="strength" onclick="selectLogType(this)">🏋️ Strength</div>
+          <div class="focus-chip" data-ltype="mobility" onclick="selectLogType(this)">🧘 Mobility</div>
+          <div class="focus-chip" data-ltype="tennis" onclick="selectLogType(this)">🎾 Tennis</div>
+          <div class="focus-chip" data-ltype="bouldering" onclick="selectLogType(this)">🧗 Bouldering</div>
+          <div class="focus-chip" data-ltype="cycling" onclick="selectLogType(this)">🚴 Cycling</div>
+          <div class="focus-chip" data-ltype="swim" onclick="selectLogType(this)">🏊 Swim</div>
+          <div class="focus-chip" data-ltype="other" onclick="selectLogType(this)">🏅 Other</div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="card card-p">
+          <div style="display:flex;gap:var(--sp-sm);margin-bottom:var(--sp-md)">
+            <div style="flex:1">
+              <div class="log-fl">Date</div>
+              <input id="log-date" class="login-input" type="date">
+            </div>
+            <div style="flex:1">
+              <div class="log-fl">Duration (min)</div>
+              <input id="log-duration" class="login-input" type="number" inputmode="numeric" placeholder="45">
+            </div>
+          </div>
+          <div style="margin-bottom:var(--sp-md)">
+            <div class="log-fl">Distance <span id="log-dist-unit">(km)</span> — optional</div>
+            <input id="log-distance" class="login-input" type="number" inputmode="decimal" placeholder="optional">
+          </div>
+          <div style="margin-bottom:var(--sp-md)">
+            <div class="log-fl">Effort — optional</div>
+            <div class="seg-control" id="log-effort">
+              <div class="seg-btn" data-effort="easy" onclick="setLogEffort(this)">Easy</div>
+              <div class="seg-btn" data-effort="moderate" onclick="setLogEffort(this)">Moderate</div>
+              <div class="seg-btn" data-effort="hard" onclick="setLogEffort(this)">Hard</div>
+            </div>
+          </div>
+          <div>
+            <div class="log-fl">Note — optional</div>
+            <input id="log-note" class="login-input" type="text" placeholder="e.g. felt strong">
+          </div>
+        </div>
+      </div>
+
+      <div id="log-error" class="login-error" style="text-align:left"></div>
+      <button class="btn btn-primary btn-full" onclick="saveManualLog()">Save to History</button>
+    </div><!-- /view-log -->
 
   </main><!-- /main -->
 
@@ -2685,12 +2747,25 @@
       if (km) { totalKm += km; if (a.duration) totalSec += a.duration; if (km > longest) longest = km; }
       return { date: (a.startTimeLocal || '').slice(0, 10), km, min };
     });
+    // Recent non-running load (bouldering, tennis, strength, etc.) across all
+    // sources so the plan can ease off after heavy days.
+    const otherSince = Date.now() - 5 * 86400000;
+    const recentOtherLoad = (activities || []).filter(a => {
+      const t = a.activityType?.typeKey || '';
+      const d = a.startTimeLocal ? new Date(a.startTimeLocal.replace(' ', 'T')) : null;
+      return t && !t.includes('running') && d && !isNaN(d) && d.getTime() >= otherSince;
+    }).slice(0, 12).map(a => ({
+      type: a.activityType.typeKey,
+      min: a.duration ? Math.round(a.duration / 60) : 0,
+      date: (a.startTimeLocal || '').slice(0, 10),
+    }));
     return {
       runCountLast14d: runs.length,
       totalKmLast14d: +totalKm.toFixed(1),
       longestRunKm: +longest.toFixed(1),
       avgPaceSecPerKm: totalKm > 0 ? Math.round(totalSec / totalKm) : null,
       recentRuns,
+      recentOtherLoad,
       readiness: readiness ? { score: readiness.score, hrvStatus: readiness.hrvStatus } : null,
     };
   }
@@ -2704,7 +2779,7 @@
     try {
       const d = loadData();
       const profile = { settings: d.settings, raceTarget: d.raceTarget };
-      const activitySummary = buildActivitySummary(_lastActivities, _lastReadiness);
+      const activitySummary = buildActivitySummary(getMergedActivities(), _lastReadiness);
       const res = await authedFetch(SUPABASE_URL + '/functions/v1/generate-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -3326,6 +3401,8 @@
       const detailParts = [when].filter(Boolean);
       if (km) detailParts.push('<span data-km="' + km + '">' + km + ' km</span>');
       if (durMin) detailParts.push(durMin + ' min');
+      if (a._source === 'manual') detailParts.push('Logged');
+      else if (a._source === 'inapp') detailParts.push('In-app');
 
       return '<div class="activity-item"><div class="act-icon ' + meta.cls + '">' + meta.icon +
         '</div><div class="act-info"><div class="ai-name">' + name + '</div><div class="ai-detail">' +
@@ -3365,6 +3442,112 @@
     }).join('');
   }
 
+  // ─── UNIFIED ACTIVITY LOG (Garmin + in-app + manual) ─────
+  // Everything Frank does — Garmin syncs, completed in-app sessions, and
+  // off-plan sessions logged by hand — flows through one merged list so it all
+  // shows in Recent Activity / Progress AND feeds the plan generator.
+  let _garminConnected = false;
+
+  const LOG_TYPE_TO_GARMIN = {
+    run: 'running', cycling: 'cycling', swim: 'lap_swimming', walk: 'walking',
+    strength: 'strength_training', mobility: 'yoga', tennis: 'tennis',
+    bouldering: 'bouldering', other: 'other',
+  };
+  const LOG_TYPE_LABEL = {
+    run: 'Run', cycling: 'Cycling', swim: 'Swim', walk: 'Walk',
+    strength: 'Strength', mobility: 'Mobility', tennis: 'Tennis',
+    bouldering: 'Bouldering', other: 'Activity',
+  };
+
+  function todayISO() {
+    const n = new Date();
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+  }
+
+  function getLocalLogs() {
+    const l = loadData().logs;
+    return Array.isArray(l) ? l : [];
+  }
+
+  // Normalizes a local log into the Garmin activity shape the renderers +
+  // aggregators already understand.
+  function logToActivity(log) {
+    return {
+      activityType: { typeKey: LOG_TYPE_TO_GARMIN[log.type] || 'other' },
+      activityName: log.name || LOG_TYPE_LABEL[log.type] || 'Activity',
+      startTimeLocal: (log.dateISO || todayISO()) + ' 12:00:00',
+      duration: (log.durationMin || 0) * 60,
+      distance: log.distanceKm ? log.distanceKm * 1000 : null,
+      _source: log.source,
+      _logId: log.id,
+    };
+  }
+
+  function getMergedActivities() {
+    const merged = getLocalLogs().map(logToActivity).concat(_lastActivities || []);
+    merged.sort((a, b) => {
+      const ta = new Date((a.startTimeLocal || '').replace(' ', 'T')).getTime() || 0;
+      const tb = new Date((b.startTimeLocal || '').replace(' ', 'T')).getTime() || 0;
+      return tb - ta;
+    });
+    return merged;
+  }
+
+  function refreshActivityViews() {
+    const merged = getMergedActivities();
+    renderRecentActivities(merged);
+    renderDetectedActivities(merged);
+    initProgress(merged, _garminConnected || getLocalLogs().length > 0);
+  }
+
+  function addLog(entry) {
+    const d = loadData();
+    d.logs = Array.isArray(d.logs) ? d.logs : [];
+    d.logs.unshift(Object.assign({ id: 'log_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6) }, entry));
+    saveData(d);
+    refreshActivityViews();
+  }
+
+  // ─── MANUAL LOG SCREEN ─────
+  function openLogScreen() {
+    const dateEl = document.getElementById('log-date');
+    if (dateEl && !dateEl.value) dateEl.value = todayISO();
+    const unitEl = document.getElementById('log-dist-unit');
+    if (unitEl) unitEl.textContent = (loadData().settings?.units === 'mi') ? '(mi)' : '(km)';
+    const err = document.getElementById('log-error'); if (err) err.textContent = '';
+    showView('log', 'forward');
+  }
+
+  function selectLogType(el) {
+    document.querySelectorAll('#log-type-grid .focus-chip').forEach(c => c.classList.remove('sel'));
+    el.classList.add('sel');
+  }
+
+  function setLogEffort(el) {
+    document.querySelectorAll('#log-effort .seg-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  function saveManualLog() {
+    const err = document.getElementById('log-error');
+    const type = document.querySelector('#log-type-grid .focus-chip.sel')?.dataset.ltype;
+    const dateISO = document.getElementById('log-date').value || todayISO();
+    const durationMin = parseInt(document.getElementById('log-duration').value, 10);
+    const distanceRaw = parseFloat(document.getElementById('log-distance').value);
+    const effort = document.querySelector('#log-effort .seg-btn.active')?.dataset.effort || null;
+    const note = (document.getElementById('log-note').value || '').trim();
+    if (!type) { if (err) err.textContent = 'Pick an activity type.'; return; }
+    if (!durationMin || durationMin <= 0) { if (err) err.textContent = 'Enter a duration in minutes.'; return; }
+    const mi = (loadData().settings?.units === 'mi');
+    const distanceKm = isNaN(distanceRaw) ? null : (mi ? +(distanceRaw * 1.60934).toFixed(2) : distanceRaw);
+    addLog({ source: 'manual', type, dateISO, durationMin, distanceKm, effort, note, name: LOG_TYPE_LABEL[type] || 'Activity' });
+    // reset the form for next time
+    document.querySelectorAll('#log-type-grid .focus-chip').forEach(c => c.classList.remove('sel'));
+    document.querySelectorAll('#log-effort .seg-btn').forEach(b => b.classList.remove('active'));
+    ['log-duration', 'log-distance', 'log-note'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    showView('today', 'back');
+  }
+
   async function refreshGarminData() {
     setGarminBadges('Checking…', false);
     const sub = document.getElementById('r-sub');
@@ -3373,9 +3556,9 @@
       if (res.status === 401 || res.status === 403) {
         setGarminBadges('Not connected', false);
         if (sub) sub.textContent = 'Sign in to sync Garmin';
-        renderRecentActivities([]);
-        renderDetectedActivities([]);
-        initProgress([], false);
+        _garminConnected = false;
+        _lastActivities = [];
+        refreshActivityViews();
         showLogin();
         return;
       }
@@ -3383,25 +3566,25 @@
       if (res.status === 404) {
         setGarminBadges('Not connected', false);
         if (sub) sub.textContent = 'Connect Garmin to see Body Battery & HRV';
-        renderRecentActivities([]);
-        renderDetectedActivities([]);
-        initProgress([], false);
+        _garminConnected = false;
+        _lastActivities = [];
+        refreshActivityViews();
         return;
       }
       if (!res.ok) throw new Error(data.error || 'Sync failed');
       setGarminBadges('Connected', true);
       _lastActivities = data.activities || [];
       _lastReadiness = data.readiness || null;
+      _garminConnected = true;
       setGenerateEnabled(true);
       renderReadiness(data.readiness);
-      renderRecentActivities(data.activities);
-      renderDetectedActivities(data.activities);
-      initProgress(data.activities, true);
+      refreshActivityViews();
     } catch (e) {
       console.warn('Garmin data fetch failed:', e);
       setGarminBadges('Sync issue', false);
       if (sub) sub.textContent = 'Garmin sync issue — try again shortly';
-      initProgress([], false);
+      _garminConnected = false;
+      refreshActivityViews();
     }
   }
 
@@ -4214,7 +4397,7 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="margin-right:6px"><polygon points="5,3 19,12 5,21"/></svg>
         Start Workout
       </button>
-      <button class="btn btn-secondary btn-full" onclick="showView('log')">Log Manually Instead</button>
+      <button class="btn btn-secondary btn-full" onclick="openLogScreen()">Log Manually Instead</button>
     `;
   }
 
@@ -4491,7 +4674,7 @@
     }
 
     if (SES.partIdx >= SES.wo.parts.length - 1) {
-      endSession();
+      endSession(true);
       return;
     }
     SES.partIdx++;
@@ -4581,7 +4764,7 @@
       SES.setIdx = 0;
       SES.movIdx = 0;
     } else {
-      endSession();
+      endSession(true);
       return;
     }
     const newMov = SES.wo.parts[SES.partIdx].moves[SES.movIdx];
@@ -4612,12 +4795,17 @@
     renderActiveStep();
   }
 
-  function endSession() {
+  function endSession(completed) {
     if (!SES) return;
     clearInterval(SES.sessionInterval);
     clearInterval(SES.countdownInterval);
     if (SES.wo.sessionType === 'A' || SES.wo.sessionType === 'B') {
       localStorage.setItem('tbf-last-strength', SES.wo.sessionType);
+      // Completed guided strength session → record it in the unified history.
+      if (completed) {
+        const durationMin = Math.max(1, Math.round((Date.now() - SES.startTime) / 60000));
+        addLog({ source: 'inapp', type: 'strength', dateISO: todayISO(), durationMin, distanceKm: null, effort: null, note: '', name: SES.wo.name || 'Strength Session' });
+      }
     }
     SES = null;
     document.getElementById('session-overlay').classList.remove('active');
@@ -4679,7 +4867,7 @@
     initStrength();
     initMobility();
     initInstallPrompt();
-    initProgress([], false);
+    refreshActivityViews();   // show any locally-logged activity immediately
     // Auth gate: only reach out to Garmin once Frank has a session. Local
     // features (logging, plan, settings) are already rendered above; the login
     // overlay simply covers them until he signs in the first time.
