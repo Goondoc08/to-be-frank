@@ -46,9 +46,9 @@ Built and deployed:
 
 **Not connected yet — two failed attempts on 2026-07-09, both connected Nicholas's own Garmin account instead of Frank's.** His machine has `GARMIN_EMAIL`/`GARMIN_PASSWORD` set as persistent environment variables (from his separate NAM Fitness Garmin integration). The SDK's bundled CLI (`npx garmin-connect profile`) does `process.env.GARMIN_EMAIL ?? (prompt)`, so any time those env vars are present in the terminal — including a fresh window opened after waiting out a rate limit — it silently reuses his account with no prompt shown. Manually clearing the vars each time (`set GARMIN_EMAIL=` / `set GARMIN_PASSWORD=`) worked once but was missed on a retry. Both wrong tokens were deleted from Supabase and the local machine.
 
-**Fix: `scripts/garmin-connect-frank.mjs` replaces the SDK's bundled CLI entirely for this purpose.** It never reads `GARMIN_EMAIL`/`GARMIN_PASSWORD` — always prompts fresh — so it can't repeat this mistake regardless of what's in the environment. It also skips local file storage (the source of an earlier trailing-space bug from `cmd.exe`'s `set X=Y && cmd` — see git history) and uploads the resulting token to Supabase directly in the same run, no separate upload step.
+**Fixed and connected — confirmed by Nicholas as Frank's real account.** `scripts/garmin-connect-frank.mjs` replaced the SDK's bundled CLI entirely for this purpose. It never reads `GARMIN_EMAIL`/`GARMIN_PASSWORD` — always prompts fresh — so it can't repeat the wrong-account mistake regardless of what's in the environment. It also skips local file storage (the source of an earlier trailing-space bug from `cmd.exe`'s `set X=Y && cmd` — see git history) and uploads the resulting token to Supabase directly in the same run. The app shows "Connected" and real activity data (Houston-based marathon training block — structured W3/W4 tempo/long-run workouts) is flowing through.
 
-**To connect Frank's account, run this once from a computer with Node 24+:**
+**To reconnect (e.g. if the session ever expires), run this once from a computer with Node 24+:**
 ```
 cd "To Be Frank/scripts"
 npm install
