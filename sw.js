@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tbf-v3';
+const CACHE_NAME = 'tbf-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -24,9 +24,14 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const req = event.request;
 
-  // API calls: network-first, fall back to cache when offline
-  if (req.url.includes('/api/')) {
-    event.respondWith(fetch(req).catch(() => caches.match(req)));
+  // Supabase (Garmin data/push) calls: always network, never cached.
+  // This is per-athlete data that changes daily — the generic
+  // cache-first branch below previously caught these (the '/api/'
+  // check never matched anything real in this app) and could serve
+  // one athlete's cached Garmin response to a different browser
+  // indefinitely, including from before an account mixup was fixed.
+  if (new URL(req.url).origin !== self.location.origin) {
+    event.respondWith(fetch(req));
     return;
   }
 
