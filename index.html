@@ -1596,40 +1596,8 @@
       <!-- Recent activity -->
       <div>
         <div class="label" style="margin-bottom:var(--sp-sm)">Recent Activity</div>
-        <div class="card card-p">
-          <div class="activity-item">
-            <div class="act-icon run">🏃</div>
-            <div class="act-info">
-              <div class="ai-name">Easy Run</div>
-              <div class="ai-detail">Yesterday · <span data-km="6.2">6.2 km</span> · 35:10</div>
-            </div>
-            <div class="act-stat">
-              <div class="as-val"><span data-pace-sec="340" data-format="num">5:40</span></div>
-              <div class="as-unit" data-unit="pace-label">/km</div>
-            </div>
-          </div>
-          <div class="activity-item">
-            <div class="act-icon boulder">🧗</div>
-            <div class="act-info">
-              <div class="ai-name">Bouldering</div>
-              <div class="ai-detail">2 days ago · 90 min</div>
-            </div>
-            <div class="act-stat">
-              <div class="as-val">7/10</div>
-              <div class="as-unit">effort</div>
-            </div>
-          </div>
-          <div class="activity-item">
-            <div class="act-icon tennis">🎾</div>
-            <div class="act-info">
-              <div class="ai-name">Tennis</div>
-              <div class="ai-detail">3 days ago · 75 min</div>
-            </div>
-            <div class="act-stat">
-              <div class="as-val">6/10</div>
-              <div class="as-unit">effort</div>
-            </div>
-          </div>
+        <div class="card card-p" id="recent-activity-list">
+          <div style="padding:16px 0;text-align:center;font-size:12px;color:var(--text-tertiary)">Connect Garmin to see recent activity</div>
         </div>
       </div>
 
@@ -1674,21 +1642,12 @@
       <!-- Plan day rows -->
       <div class="card card-p" id="plan-days">
         <!-- Garmin detected activities shown as context at the bottom -->
-        <div class="detected-section">
+        <div class="detected-section" id="detected-section" style="display:none">
           <div style="display:flex;align-items:center;margin-bottom:var(--sp-sm)">
             <div class="label">Detected This Week via Garmin</div>
             <span class="info-btn" onclick="showTip(this,'Unplanned activities pulled automatically from Garmin. These aren\'t prescribed — they\'re factored into how the next session\'s intensity is set. A hard bouldering day before a strength session will soften the load.')">?</span>
           </div>
-          <div class="detected-pills">
-            <div class="detected-pill">
-              <div class="dp-dot" style="background:var(--c-tennis)"></div>
-              Tennis · Thu · 75 min
-            </div>
-            <div class="detected-pill">
-              <div class="dp-dot" style="background:var(--c-boulder)"></div>
-              Bouldering · Sat · 90 min
-            </div>
-          </div>
+          <div class="detected-pills" id="detected-pills"></div>
         </div>
       </div>
 
@@ -2734,6 +2693,123 @@
     });
   }
 
+  const ACTIVITY_META = {
+    running:          { icon: '🏃', cls: 'run' },
+    street_running:   { icon: '🏃', cls: 'run' },
+    trail_running:    { icon: '🏃', cls: 'run' },
+    treadmill_running:{ icon: '🏃', cls: 'run' },
+    indoor_running:   { icon: '🏃', cls: 'run' },
+    track_running:    { icon: '🏃', cls: 'run' },
+    indoor_cardio:    { icon: '🏃', cls: 'run' },
+    walking:          { icon: '🚶', cls: 'run' },
+    casual_walking:   { icon: '🚶', cls: 'run' },
+    hiking:           { icon: '🥾', cls: 'run' },
+    cycling:          { icon: '🚴', cls: 'run' },
+    road_biking:      { icon: '🚴', cls: 'run' },
+    indoor_cycling:   { icon: '🚴', cls: 'run' },
+    mountain_biking:  { icon: '🚵', cls: 'run' },
+    swimming:         { icon: '🏊', cls: 'run' },
+    lap_swimming:     { icon: '🏊', cls: 'run' },
+    open_water_swimming: { icon: '🏊', cls: 'run' },
+    strength_training:{ icon: '🏋️', cls: 'strength' },
+    fitness_equipment:{ icon: '🏋️', cls: 'strength' },
+    indoor_strength:  { icon: '🏋️', cls: 'strength' },
+    yoga:             { icon: '🧘', cls: 'mobility' },
+    pilates:          { icon: '🧘', cls: 'mobility' },
+    tennis:           { icon: '🎾', cls: 'tennis' },
+    bouldering:       { icon: '🧗', cls: 'boulder' },
+    rock_climbing:    { icon: '🧗', cls: 'boulder' },
+  };
+  const PLANNED_TYPES = new Set([
+    'running', 'street_running', 'trail_running', 'treadmill_running', 'indoor_running', 'track_running',
+    'strength_training', 'fitness_equipment', 'indoor_strength',
+  ]);
+
+  function activityDisplayName(a) {
+    if (a.activityName) return a.activityName;
+    const key = a.activityType?.typeKey || 'Activity';
+    return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  function relativeDayLabel(startTimeLocal) {
+    if (!startTimeLocal) return '';
+    const d = new Date(startTimeLocal.replace(' ', 'T'));
+    if (isNaN(d)) return '';
+    const startOfDay = x => new Date(x.getFullYear(), x.getMonth(), x.getDate());
+    const diffDays = Math.round((startOfDay(new Date()) - startOfDay(d)) / 86400000);
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays > 1 && diffDays < 7) return diffDays + ' days ago';
+    return d.toLocaleDateString(undefined, { weekday: 'short' });
+  }
+
+  function renderRecentActivities(activities) {
+    const container = document.getElementById('recent-activity-list');
+    if (!container) return;
+    if (!activities || !activities.length) {
+      container.innerHTML = '<div style="padding:16px 0;text-align:center;font-size:12px;color:var(--text-tertiary)">No recent activity yet</div>';
+      return;
+    }
+    container.innerHTML = activities.slice(0, 3).map(a => {
+      const typeKey = a.activityType?.typeKey || 'other';
+      const meta = ACTIVITY_META[typeKey] || { icon: '🏅', cls: 'run' };
+      const name = activityDisplayName(a);
+      const when = relativeDayLabel(a.startTimeLocal);
+      const durMin = a.duration ? Math.round(a.duration / 60) : null;
+      const km = a.distance ? +(a.distance / 1000).toFixed(2) : null;
+
+      const isPaceType = PLANNED_TYPES.has(typeKey) || typeKey === 'walking' || typeKey === 'casual_walking' || typeKey === 'hiking';
+      let statHTML = '';
+      if (isPaceType && km && a.duration) {
+        const paceSec = Math.round(a.duration / km);
+        statHTML = '<div class="act-stat"><div class="as-val"><span data-pace-sec="' + paceSec +
+          '" data-format="num">--</span></div><div class="as-unit" data-unit="pace-label">/km</div></div>';
+      } else if (durMin) {
+        statHTML = '<div class="act-stat"><div class="as-val">' + durMin + '</div><div class="as-unit">min</div></div>';
+      }
+
+      const detailParts = [when].filter(Boolean);
+      if (km) detailParts.push('<span data-km="' + km + '">' + km + ' km</span>');
+      if (durMin) detailParts.push(durMin + ' min');
+
+      return '<div class="activity-item"><div class="act-icon ' + meta.cls + '">' + meta.icon +
+        '</div><div class="act-info"><div class="ai-name">' + name + '</div><div class="ai-detail">' +
+        detailParts.join(' · ') + '</div></div>' + statHTML + '</div>';
+    }).join('');
+    applyUnits();
+  }
+
+  function renderDetectedActivities(activities) {
+    const section = document.getElementById('detected-section');
+    const container = document.getElementById('detected-pills');
+    if (!section || !container) return;
+
+    const weekAgo = Date.now() - 7 * 86400000;
+    const detected = (activities || []).filter(a => {
+      const typeKey = a.activityType?.typeKey;
+      if (!typeKey || PLANNED_TYPES.has(typeKey)) return false;
+      const d = a.startTimeLocal ? new Date(a.startTimeLocal.replace(' ', 'T')) : null;
+      return d && !isNaN(d) && d.getTime() >= weekAgo;
+    });
+
+    if (!detected.length) {
+      section.style.display = 'none';
+      return;
+    }
+    section.style.display = '';
+    container.innerHTML = detected.slice(0, 4).map(a => {
+      const typeKey = a.activityType.typeKey;
+      const color = typeKey === 'tennis' ? 'var(--c-tennis)' :
+        (typeKey === 'bouldering' || typeKey === 'rock_climbing') ? 'var(--c-boulder)' : 'var(--accent)';
+      const name = activityDisplayName(a);
+      const day = relativeDayLabel(a.startTimeLocal);
+      const durMin = a.duration ? Math.round(a.duration / 60) : null;
+      const bits = [name, day, durMin ? durMin + ' min' : null].filter(Boolean);
+      return '<div class="detected-pill"><div class="dp-dot" style="background:' + color + '"></div>' +
+        bits.join(' · ') + '</div>';
+    }).join('');
+  }
+
   async function refreshGarminData() {
     setGarminBadges('Checking…', false);
     const sub = document.getElementById('r-sub');
@@ -2748,11 +2824,15 @@
       if (res.status === 404) {
         setGarminBadges('Not connected', false);
         if (sub) sub.textContent = 'Connect Garmin to see Body Battery & HRV';
+        renderRecentActivities([]);
+        renderDetectedActivities([]);
         return;
       }
       if (!res.ok) throw new Error(data.error || 'Sync failed');
       setGarminBadges('Connected', true);
       if (sub) sub.textContent = 'Synced from Garmin';
+      renderRecentActivities(data.activities);
+      renderDetectedActivities(data.activities);
     } catch (e) {
       console.warn('Garmin data fetch failed:', e);
       setGarminBadges('Sync issue', false);
