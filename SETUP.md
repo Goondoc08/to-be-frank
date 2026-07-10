@@ -67,6 +67,17 @@ This prompts for Frank's email, password, and an MFA code if Garmin asks for one
 - [ ] **Not yet verified against a real connected Garmin account** — now that Garmin is connected (above), this is the next thing to test. `WorkoutsEndpoint` is marked experimental by the SDK's own maintainer ("unstable until v1 release candidate"), so treat the first real push as a test, not a guarantee. If it fails, the button falls back gracefully ("Push failed — starting anyway") and Frank can still start the session locally
 - Deliberately **doesn't** set HR-zone or pace targets on the pushed steps (only durations + descriptions) — the app doesn't have Frank's actual zone/pace numbers, and fabricating them would put wrong guidance on his watch
 
+**Progress tab — de-mocked 2026-07-09.** The Progress tab (weekly volume/pace/load sparklines, "This Month" stat pills) previously always showed hardcoded 8-week sample data with a "Sample data" banner, regardless of Garmin connection status — a UI-testing placeholder that was never wired up. Now that Garmin is connected and pulling real activity history (above), it's wired to real data:
+- [x] `index.html` — `initProgress()` now aggregates real activities into weekly buckets (Mon–Sun, last 8 weeks) and calendar-month buckets, computed client-side from whatever `refreshGarminData()` fetches. Volume/pace use running-type activities only; training load uses total minutes across all activity types. Trend arrows only render when there's a real prior-period baseline to compare against (no fabricated percentages). When there's no run history yet (not connected, or connected but nothing logged), the banner and stat pills show an honest empty state instead of numbers.
+- [x] `supabase/functions/garmin-data/index.ts` — widened the activities fetch from `limit: 10` (barely covered "recent activity") to a 70-day `startDate`/`endDate` window at `limit: 200`, enough to cover the 8-week charts plus this-month/last-month comparisons.
+- [ ] **Not yet redeployed** — the Edge Function change is only in the repo so far. Deploy it with:
+  ```
+  cd "To Be Frank"
+  npx supabase login   # if not already logged in on this machine
+  npx supabase functions deploy garmin-data --project-ref htnxrfjdsdevfvyrhrdb
+  ```
+  Until this runs, the live function still uses `limit: 10`, so the Progress tab will only have a few days of data to chart (better than mock data, but not the full 8 weeks).
+
 ---
 
 ## 5. Anthropic plan-generation proxy — not started

@@ -56,12 +56,16 @@ Deno.serve(async (req) => {
       );
     }
 
+    // 70-day window covers the Progress tab's 8-week charts plus this-month/last-month
+    // comparisons, with a little slack. limit is generous since strength/mobility
+    // sessions share the window with runs and shouldn't crowd them out.
+    const startDate = new Date(Date.now() - 70 * 86400000);
     const [heartRate, bodyBattery, hrv, sleep, activities] = await Promise.all([
       sdk.health.getHeartRate(date).catch(() => null),
       sdk.health.getBodyBattery(date).catch(() => null),
       sdk.health.getHrvStatus(date).catch(() => null),
       sdk.sleep.getDailySleep(date).catch(() => null),
-      sdk.activities.list({ limit: 10 }).catch(() => []),
+      sdk.activities.list({ limit: 200, startDate, endDate: date }).catch(() => []),
     ]);
 
     return new Response(
