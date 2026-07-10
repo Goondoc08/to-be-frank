@@ -39,40 +39,24 @@ Project `to-be-frank` is live: `https://htnxrfjdsdevfvyrhrdb.supabase.co`, linke
 **Revised, deployed design:** login happens once, locally, on a computer — where an MFA prompt works normally in a real terminal — using `garmin-connect-sdk` (actively maintained, TypeScript, only dependency is `zod`, no Node-runtime tricks). Only the resulting session token gets uploaded to Supabase. **Frank's Garmin password never touches the backend or the app at all** — a stronger guarantee than the original plan.
 
 Built and deployed:
-- [x] `scripts/garmin-upload-token.mjs` + `scripts/package.json` — run locally (never deployed) to read the token produced by `garmin-connect-sdk`'s own CLI and upload it
 - [x] `supabase/functions/garmin-token-upload/index.ts` — accepts `{ tokens }`, stores it in `garmin_tokens` (deployed, verified with a dummy token: `200 OK`)
 - [x] `supabase/functions/garmin-data/index.ts` — restores the session via `garmin-connect-sdk`, returns heart rate/Body Battery/HRV/sleep/activities for a date, auto-persists refreshed tokens (deployed, verified booting cleanly: returns `404` "no session on file", not a boot error)
 - [x] `supabase/migrations/20260709010000_garmin_tokens_v2.sql` — `garmin_tokens(athlete, tokens jsonb)`, RLS on with zero policies (service_role only)
 - [x] Profile tab "Garmin Connect" sheet updated — no password fields; shows live Connected/Not connected status pulled from `garmin-data`, with a "Check connection again" button
 
-**Connected — 2026-07-09.** A first attempt that day silently logged into Nicholas's own Garmin account instead of Frank's — his machine has `GARMIN_EMAIL`/`GARMIN_PASSWORD` set as persistent environment variables (from his separate NAM Fitness Garmin integration), and `createGarminFromCli` does `process.env.GARMIN_EMAIL ?? (prompt)`, so it silently used those instead of asking. No prompts appeared, which was the tell. That wrong token was deleted from Supabase and the local machine. A retry then hit Garmin's login rate limit (`429`) — likely from the back-to-back wrong-account and real attempts — which cleared after a few hours. The real attempt (env vars cleared first) actually prompted for credentials (`"restoredSession": false`), Frank's login succeeded, and the app now shows "Connected" with 10 real activities (running, cycling) pulled through.
+**Not connected yet — two failed attempts on 2026-07-09, both connected Nicholas's own Garmin account instead of Frank's.** His machine has `GARMIN_EMAIL`/`GARMIN_PASSWORD` set as persistent environment variables (from his separate NAM Fitness Garmin integration). The SDK's bundled CLI (`npx garmin-connect profile`) does `process.env.GARMIN_EMAIL ?? (prompt)`, so any time those env vars are present in the terminal — including a fresh window opened after waiting out a rate limit — it silently reuses his account with no prompt shown. Manually clearing the vars each time (`set GARMIN_EMAIL=` / `set GARMIN_PASSWORD=`) worked once but was missed on a retry. Both wrong tokens were deleted from Supabase and the local machine.
 
-**To reconnect (e.g. if the session ever expires), run this once from a computer with Node 24+:**
+**Fix: `scripts/garmin-connect-frank.mjs` replaces the SDK's bundled CLI entirely for this purpose.** It never reads `GARMIN_EMAIL`/`GARMIN_PASSWORD` — always prompts fresh — so it can't repeat this mistake regardless of what's in the environment. It also skips local file storage (the source of an earlier trailing-space bug from `cmd.exe`'s `set X=Y && cmd` — see git history) and uploads the resulting token to Supabase directly in the same run, no separate upload step.
+
+**To connect Frank's account, run this once from a computer with Node 24+:**
 ```
 cd "To Be Frank/scripts"
 npm install
+node garmin-connect-frank.mjs
 ```
-**On Nicholas's machine specifically: clear `GARMIN_EMAIL`/`GARMIN_PASSWORD` for this terminal session first**, or the CLI will silently reuse his own account again instead of prompting for Frank's:
-```
-set GARMIN_EMAIL=
-set GARMIN_PASSWORD=
-```
-(This only clears them for this one cmd.exe window — his permanent env vars and the NAM Fitness integration that depends on them are untouched.)
+This prompts for Frank's email, password, and an MFA code if Garmin asks for one, then uploads straight to Supabase. The app picks it up automatically — no separate app-side step, no local token file to manage. `node_modules` is gitignored.
 
-Then set the token path and run the login CLI — syntax depends on your shell. **Don't chain the `set` with `&&` in cmd.exe** — it silently includes the trailing space before `&&` as part of the value, which sends the CLI's token file to `.garmin-tokens ` (with a stray trailing space) instead of `.garmin-tokens`, so the upload script can't find it. Run `set` on its own line instead:
-- **cmd.exe:**
-  ```
-  set GARMIN_TOKEN_PATH=./.garmin-tokens
-  npx garmin-connect profile
-  ```
-- **PowerShell:** `$env:GARMIN_TOKEN_PATH=".\.garmin-tokens"; npx garmin-connect profile`
-- **bash/zsh:** `GARMIN_TOKEN_PATH=./.garmin-tokens npx garmin-connect profile`
-
-**Confirm it's actually prompting for email/password before entering Frank's credentials.** If it reports `"restoredSession": true` immediately with no prompts, stop — it found a stale/wrong session, not a fresh login. Then:
-```
-node garmin-upload-token.mjs
-```
-This reads the token the login step just saved and uploads it to Supabase. The app picks it up automatically — no separate app-side step. `.garmin-tokens` and `node_modules` are gitignored; never commit them.
+(The earlier two-step approach — a separate login via the SDK's bundled CLI, then `garmin-upload-token.mjs` to read and upload the file — has been removed from the repo. It relied on `GARMIN_EMAIL`/`GARMIN_PASSWORD` staying cleared for the whole session, which is exactly what caused both wrong-account mixups.)
 
 **Tradeoff to know about:** still unofficial — Garmin could change their auth again without notice. `garmin-connect-sdk` is pre-1.0 (`alpha`), so its API may shift. Lower risk than the original plan though, since login itself now runs through actively-maintained, tested code rather than something hand-rolled and unverifiable.
 
