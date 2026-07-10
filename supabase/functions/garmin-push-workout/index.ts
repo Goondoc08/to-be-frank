@@ -6,12 +6,17 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { GarminConnectSDK } from "npm:garmin-connect-sdk@1.0.0-alpha.4";
 import { corsHeaders, handleOptions } from "../_shared/cors.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 const ATHLETE = "frank";
 
 Deno.serve(async (req) => {
   const preflight = handleOptions(req);
   if (preflight) return preflight;
+
+  // Only a signed-in user may push workouts to Frank's Garmin calendar.
+  const auth = await requireUser(req);
+  if (auth instanceof Response) return auth;
 
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {

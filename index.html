@@ -1521,7 +1521,7 @@
           <div class="label">Today</div>
         </div>
 
-        <div class="session-hero" data-type="run">
+        <div class="session-hero" id="today-hero" data-type="run">
           <div class="sh-top">
             <div class="sh-icon">
               <!-- Running shoe / pace icon -->
@@ -1633,7 +1633,7 @@
           Available once Garmin is connected
           <span class="info-btn" style="margin-left:0" onclick="showTip(this,'Uses your Garmin activity history, readiness, current focus, race target, and detected activities to generate a balanced 7-day plan of runs, strength, and mobility.')">?</span>
         </div>
-        <button class="btn btn-secondary" disabled>
+        <button class="btn btn-secondary" id="gen-week-btn" onclick="generateWeek()" disabled>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 3v1m0 16v1M4.22 4.22l.7.7m12.16 12.16.7.7M3 12h1m16 0h1M4.92 19.08l.7-.7M18.38 5.62l.7-.7"/><circle cx="12" cy="12" r="4"/></svg>
           Generate Week
         </button>
@@ -2039,6 +2039,18 @@
         </div>
       </div>
 
+      <!-- Account -->
+      <div class="settings-section">
+        <div class="card card-p">
+          <div class="settings-row" style="border-bottom:none" onclick="signOut()">
+            <div class="sr-info">
+              <div class="sr-title" style="color:#e57373">Sign Out</div>
+              <div class="sr-sub">You'll need to sign in again to sync Garmin</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div style="text-align:center;padding:var(--sp-xl) 0;font-size:12px;color:var(--text-tertiary)">
         To Be Frank · v0.1.0
       </div>
@@ -2087,6 +2099,42 @@
   </nav>
 
 </div><!-- /app -->
+
+<!-- ══════════════ LOGIN GATE ═══════════════════ -->
+<style>
+  .login-overlay {
+    position: fixed; inset: 0; z-index: 2000;
+    display: none; align-items: center; justify-content: center;
+    background: var(--bg-app);
+    padding: calc(var(--safe-top) + var(--sp-lg)) var(--sp-lg) calc(var(--safe-bottom) + var(--sp-lg));
+  }
+  .login-card { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: var(--sp-md); }
+  .login-brand { font-size: 32px; font-weight: 700; letter-spacing: -0.6px; text-align: center; color: var(--text-primary); }
+  .login-brand em { color: var(--accent); font-style: normal; }
+  .login-sub { text-align: center; font-size: 14px; color: var(--text-secondary); margin-top: calc(-1 * var(--sp-sm)); margin-bottom: var(--sp-sm); }
+  .login-input {
+    width: 100%; box-sizing: border-box;
+    background: var(--bg-card); border: 1px solid var(--border-strong);
+    border-radius: var(--r-md); padding: 14px 16px;
+    font-family: var(--font); font-size: 16px; color: var(--text-primary);
+    outline: none; transition: border-color .15s;
+  }
+  .login-input:focus { border-color: var(--accent); }
+  .login-input::placeholder { color: var(--text-tertiary); }
+  .login-error { min-height: 18px; font-size: 13px; color: #e57373; text-align: center; }
+  .login-note { font-size: 12px; color: var(--text-tertiary); text-align: center; line-height: 1.45; margin-top: var(--sp-xs); }
+</style>
+<div id="login-overlay" class="login-overlay">
+  <form class="login-card" onsubmit="submitLogin(event)">
+    <div class="login-brand">To Be <em>Frank</em></div>
+    <div class="login-sub">Sign in to sync your Garmin data</div>
+    <input id="login-email" class="login-input" type="email" inputmode="email" autocomplete="username" autocapitalize="off" autocorrect="off" placeholder="Email">
+    <input id="login-password" class="login-input" type="password" autocomplete="current-password" placeholder="Password">
+    <div id="login-error" class="login-error"></div>
+    <button id="login-btn" class="btn btn-primary btn-full" type="submit">Sign In</button>
+    <div class="login-note">Your workouts and settings stay on this device. Signing in only protects your synced Garmin health data.</div>
+  </form>
+</div>
 
 <!-- ══════════════ BOTTOM SHEETS ══════════════════ -->
 
@@ -2326,13 +2374,18 @@
   // ─── WEEK STRIP ─────────────────────────────────
   function initWeekStrip() {
     const strip = document.getElementById('week-strip');
+    if (!strip) return;
+    strip.innerHTML = '';
     const labels = ['M','T','W','T','F','S','S'];
     const now = new Date();
     const dow = now.getDay();
     const mondayOff = dow === 0 ? -6 : 1 - dow;
 
-    // Planned session types — will be replaced by real plan data later
-    const actTypes = ['run','strength','run','mobility','run','strength',null];
+    // Session-type dots from the live plan week (demo pattern until one exists).
+    const actTypes = _planWeeks.A
+      ? _planWeeks.A.map(dd => (dd && ['run','strength','mobility'].includes(dd.type)) ? dd.type : null)
+      : ['run','strength','run','mobility','run','strength',null];
+    while (actTypes.length < 7) actTypes.push(null);
 
     labels.forEach((lbl, i) => {
       const d = new Date(now);
@@ -2357,7 +2410,7 @@
   // ─── PLAN DAYS ──────────────────────────────────
   // Plan = only prescribed training: runs, strength, mobility.
   // Tennis / bouldering appear via Garmin detection and shift plan intensity.
-  const PLAN_DATA = [
+  let PLAN_DATA = [
     { sessions: [{
       name: 'Easy Run', sub: '45 min · Zone 2 · conversational', type: 'run', dur: '45m',
       badge: 'Easy Run', badgeClass: 'badge-run', meta: '45 min · ~9 km',
@@ -2438,34 +2491,66 @@
     { sessions: [] }
   ];
 
+  // ─── PLAN STATE (two weeks: A = live, B = projected) ─────
+  let _planWeeks = { A: null, B: null };
+  let _viewWeek = 'A';
+  let _lastActivities = [];
+  let _lastReadiness = null;
+
+  function todayIdx() { const dow = new Date().getDay(); return dow === 0 ? 6 : dow - 1; } // Mon=0 … Sun=6
+
+  function mondayISO(date) {
+    const d = new Date(date);
+    const dow = d.getDay();
+    d.setDate(d.getDate() + (dow === 0 ? -6 : 1 - dow));
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString().slice(0, 10);
+  }
+
+  // Maps one week's day objects to the app's PLAN_DATA shape (7 entries).
+  function mapWeekToData(days) {
+    const list = (days || []).slice(0, 7);
+    while (list.length < 7) list.push({ type: 'rest' });
+    return list.map(d => {
+      if (!d || !['run', 'strength', 'mobility'].includes(d.type)) return { sessions: [] };
+      const s = {
+        name: d.name, sub: d.sub, type: d.type, dur: d.dur,
+        badge: d.name, badgeClass: 'badge-' + d.type, meta: d.meta, title: d.title, desc: d.desc,
+      };
+      if (d.type === 'run') s.blocks = d.blocks || [];
+      else s.movements = d.movements || [];
+      return { sessions: [s] };
+    });
+  }
+
   function initPlanDays() {
     const container = document.getElementById('plan-days');
+    if (!container) return;
+    // Re-render only the day rows; the Garmin "detected" section is a sibling
+    // inside #plan-days and must survive.
+    container.querySelectorAll('.plan-day').forEach(r => r.remove());
+    const detected = document.getElementById('detected-section');
     const now = new Date();
     const dow = now.getDay();
-    const mondayOff = dow === 0 ? -6 : 1 - dow;
+    const mondayOff = (dow === 0 ? -6 : 1 - dow) + (_viewWeek === 'B' ? 7 : 0);
     const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    const typeColor = {
-      run: 'var(--c-run)', strength: 'var(--c-strength)', mobility: 'var(--c-mobility)'
-    };
+    const typeColor = { run: 'var(--c-run)', strength: 'var(--c-strength)', mobility: 'var(--c-mobility)' };
 
     dayNames.forEach((name, i) => {
       const d = new Date(now);
       d.setDate(now.getDate() + mondayOff + i);
-      const isToday = d.toDateString() === now.toDateString();
-      const data = PLAN_DATA[i];
+      const isToday = _viewWeek === 'A' && d.toDateString() === now.toDateString();
+      const data = PLAN_DATA[i] || { sessions: [] };
       const row = document.createElement('div');
-
+      row.className = 'plan-day';
       if (!data.sessions.length) {
-        row.className = 'plan-day';
         row.innerHTML = `
           <div class="pd-label${isToday ? ' today' : ''}">
             <div class="pdl-day">${name}</div>
             <div class="pdl-date">${d.getDate()}</div>
           </div>
-          <div class="pd-rest">Rest</div>
-        `;
+          <div class="pd-rest">Rest</div>`;
       } else {
-        row.className = 'plan-day';
         const sessHTML = data.sessions.map(s => `
           <div class="plan-session-card" onclick="openPlanSheet(${i})">
             <div class="psc-dot" style="background:${typeColor[s.type] || 'var(--text-tertiary)'}"></div>
@@ -2474,18 +2559,177 @@
               <div class="psc-sub">${s.sub}</div>
             </div>
             <div class="psc-dur">${s.dur}</div>
-          </div>
-        `).join('');
+          </div>`).join('');
         row.innerHTML = `
           <div class="pd-label${isToday ? ' today' : ''}">
             <div class="pdl-day">${name}</div>
             <div class="pdl-date">${d.getDate()}</div>
           </div>
-          <div class="pd-sessions">${sessHTML}</div>
-        `;
+          <div class="pd-sessions">${sessHTML}</div>`;
       }
-      container.appendChild(row);
+      if (detected) container.insertBefore(row, detected);
+      else container.appendChild(row);
     });
+  }
+
+  function renderPlanView() {
+    PLAN_DATA = mapWeekToData(_planWeeks[_viewWeek]);
+    initPlanDays();
+    const lbl = document.getElementById('week-label');
+    if (lbl) lbl.textContent = _viewWeek === 'A' ? 'This Week' : 'Next Week · Projected';
+  }
+
+  function setViewWeek(k) {
+    if (k === 'B' && !_planWeeks.A && !_planWeeks.B) return; // nothing generated yet
+    _viewWeek = k;
+    renderPlanView();
+  }
+
+  // ─── TODAY HERO (live week's session for today) ─────
+  function renderTodayHero() {
+    const hero = document.getElementById('today-hero');
+    if (!hero) return;
+    const day = _planWeeks.A ? _planWeeks.A[todayIdx()] : null;
+    if (!day || !['run', 'strength', 'mobility'].includes(day.type)) {
+      hero.dataset.type = 'rest';
+      hero.innerHTML = `
+        <div class="sh-top"><span class="badge">Rest</span></div>
+        <div class="sh-name">Rest Day</div>
+        <div class="sh-desc">Recovery — nothing scheduled today. Keep it easy, or add a mobility session if you feel good.</div>`;
+      return;
+    }
+    const label = day.type === 'run' ? 'Run' : day.type === 'strength' ? 'Strength' : 'Mobility';
+    hero.dataset.type = day.type;
+    hero.innerHTML = `
+      <div class="sh-top">
+        <div class="sh-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+        </div>
+        <span class="badge badge-${day.type}">${label}</span>
+      </div>
+      <div class="sh-name">${day.name}</div>
+      <div class="sh-desc">${day.desc}</div>
+      <div class="sh-meta"><div class="sh-meta-item"><div class="mv">${day.meta || day.dur}</div><div class="ml">${label}</div></div></div>
+      <div class="sh-actions">
+        <button class="btn btn-primary" style="flex:1" onclick="openTodaySession()">View Session</button>
+      </div>`;
+  }
+
+  function openTodaySession() {
+    const day = _planWeeks.A ? _planWeeks.A[todayIdx()] : null;
+    if (!day || !['run', 'strength', 'mobility'].includes(day.type)) return;
+    const s = mapWeekToData([day])[0].sessions[0];
+    document.getElementById('sheet-session-inner').innerHTML = buildSessionSheetHTML(s, true);
+    openSheet('sheet-session');
+  }
+
+  // ─── PERSISTENCE + WEEKLY ROLLOVER ─────
+  function savePlanState() {
+    const data = loadData();
+    data.planState = {
+      weekStartISO: mondayISO(new Date()),
+      generatedAtISO: new Date().toISOString().slice(0, 10),
+      weeks: _planWeeks,
+    };
+    saveData(data);
+  }
+
+  function loadPlanStateFromStorage() {
+    const data = loadData();
+    const ps = data.planState;
+    if (!ps || !ps.weeks) return null;
+    const cur = mondayISO(new Date());
+    if (ps.weekStartISO === cur) return ps;
+    const nextMon = mondayISO(new Date(new Date(ps.weekStartISO).getTime() + 7 * 86400000));
+    if (ps.weekStartISO < cur && cur === nextMon && ps.weeks.B) {
+      // Exactly one week passed: the projected week becomes the live week.
+      ps.weeks.A = ps.weeks.B;
+      ps.weeks.B = null;
+      ps.weekStartISO = cur;
+      data.planState = ps;
+      saveData(data);
+      return ps;
+    }
+    return null; // stale (gap > 1 week, or no projected week) — Frank regenerates
+  }
+
+  function initPlanState() {
+    const ps = loadPlanStateFromStorage();
+    if (!ps) return;
+    _planWeeks = { A: ps.weeks.A || null, B: ps.weeks.B || null };
+    _viewWeek = 'A';
+    renderPlanView();
+    renderTodayHero();
+  }
+
+  // ─── AI PLAN GENERATION ─────────────────────────
+  // Latest Garmin data is cached in _lastActivities / _lastReadiness (declared
+  // with the plan state above) and feeds the plan request.
+  function setGenerateEnabled(on) {
+    const btn = document.getElementById('gen-week-btn');
+    if (btn) btn.disabled = !on;
+  }
+
+  // Compact 2-week running summary for the model — small, no raw dumps.
+  function buildActivitySummary(activities, readiness) {
+    const since = Date.now() - 14 * 86400000;
+    const runs = (activities || []).filter(a => {
+      const t = a.activityType?.typeKey || '';
+      const d = a.startTimeLocal ? new Date(a.startTimeLocal.replace(' ', 'T')) : null;
+      return t.includes('running') && d && !isNaN(d) && d.getTime() >= since;
+    });
+    let totalKm = 0, totalSec = 0, longest = 0;
+    const recentRuns = runs.slice(0, 10).map(a => {
+      const km = a.distance ? +(a.distance / 1000).toFixed(2) : 0;
+      const min = a.duration ? Math.round(a.duration / 60) : 0;
+      if (km) { totalKm += km; if (a.duration) totalSec += a.duration; if (km > longest) longest = km; }
+      return { date: (a.startTimeLocal || '').slice(0, 10), km, min };
+    });
+    return {
+      runCountLast14d: runs.length,
+      totalKmLast14d: +totalKm.toFixed(1),
+      longestRunKm: +longest.toFixed(1),
+      avgPaceSecPerKm: totalKm > 0 ? Math.round(totalSec / totalKm) : null,
+      recentRuns,
+      readiness: readiness ? { score: readiness.score, hrvStatus: readiness.hrvStatus } : null,
+    };
+  }
+
+  async function generateWeek() {
+    const btn = document.getElementById('gen-week-btn');
+    if (!btn || btn.disabled) return;
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.textContent = 'Generating your plan…';
+    try {
+      const d = loadData();
+      const profile = { settings: d.settings, raceTarget: d.raceTarget };
+      const activitySummary = buildActivitySummary(_lastActivities, _lastReadiness);
+      const res = await authedFetch(SUPABASE_URL + '/functions/v1/generate-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile, activitySummary }),
+      });
+      if (res.status === 401 || res.status === 403) { showLogin(); return; }
+      const json = await res.json();
+      if (!res.ok || !json.plan || !json.plan.current_week) throw new Error(json.error || 'Generation failed');
+      _planWeeks = {
+        A: json.plan.current_week.days || [],
+        B: (json.plan.next_week && json.plan.next_week.days) || null,
+      };
+      _viewWeek = 'A';
+      savePlanState();
+      renderPlanView();
+      renderTodayHero();
+      initWeekStrip();
+      btn.innerHTML = original;
+      btn.textContent = 'Plan generated ✓';
+      setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 2500);
+    } catch (e) {
+      console.warn('generate-plan failed:', e);
+      btn.textContent = 'Generation failed — try again';
+      setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 2500);
+    }
   }
 
   function openPlanSheet(dayIdx) {
@@ -2493,10 +2737,10 @@
     if (!dayData?.sessions.length) return;
     const s = dayData.sessions[0];
     const now = new Date();
-    const mondayOff = now.getDay() === 0 ? -6 : 1 - now.getDay();
+    const mondayOff = (now.getDay() === 0 ? -6 : 1 - now.getDay()) + (_viewWeek === 'B' ? 7 : 0);
     const d = new Date(now);
     d.setDate(now.getDate() + mondayOff + dayIdx);
-    const isToday = d.toDateString() === now.toDateString();
+    const isToday = _viewWeek === 'A' && d.toDateString() === now.toDateString();
     document.getElementById('sheet-session-inner').innerHTML = buildSessionSheetHTML(s, isToday);
     openSheet('sheet-session');
   }
@@ -2843,11 +3087,165 @@
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0bnhyZmpkc2RldmZ2eXJocmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2MDkzNjAsImV4cCI6MjA5OTE4NTM2MH0.dA7qxh9Hn44nGclpI7xiyLez8q_IQMgSMUhir_FDdq4';
   const GARMIN_DATA_URL = SUPABASE_URL + '/functions/v1/garmin-data';
 
+  // ─── AUTH (Supabase) ────────────────────────────
+  // Frank signs in once; the session (access + refresh tokens) is persisted and
+  // used to authorize every Garmin Edge Function call. The public anon key is no
+  // longer accepted by garmin-data / garmin-push-workout, so his health data
+  // isn't readable by anyone who finds the public repo.
+  const AUTH_KEY = 'tbf-auth';
+  const tbfAuth = {
+    _session: undefined,
+    load() {
+      if (this._session === undefined) {
+        try { this._session = JSON.parse(localStorage.getItem(AUTH_KEY)) || null; }
+        catch { this._session = null; }
+      }
+      return this._session;
+    },
+    _store(json) {
+      this._session = {
+        access_token: json.access_token,
+        refresh_token: json.refresh_token,
+        expires_at: json.expires_at || (Math.floor(Date.now() / 1000) + (json.expires_in || 3600)),
+      };
+      try { localStorage.setItem(AUTH_KEY, JSON.stringify(this._session)); } catch {}
+    },
+    clear() {
+      this._session = null;
+      try { localStorage.removeItem(AUTH_KEY); } catch {}
+    },
+    hasSession() { const s = this.load(); return !!(s && s.refresh_token); },
+    async signIn(email, password) {
+      const res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY },
+        body: JSON.stringify({ email, password }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error_description || json.msg || json.error || 'Sign-in failed');
+      this._store(json);
+      return json.user;
+    },
+    async _refresh() {
+      const s = this.load();
+      if (!s || !s.refresh_token) return null;
+      const res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY },
+        body: JSON.stringify({ refresh_token: s.refresh_token }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.access_token) { this.clear(); return null; }
+      this._store(json);
+      return json.access_token;
+    },
+    // Returns a valid access token, refreshing if within 60s of expiry.
+    // Returns null when there's no usable session (caller shows the login gate).
+    async getAccessToken() {
+      const s = this.load();
+      if (!s || !s.refresh_token) return null;
+      const now = Math.floor(Date.now() / 1000);
+      if (s.access_token && s.expires_at && s.expires_at - now > 60) return s.access_token;
+      return await this._refresh();
+    },
+    async signOut() {
+      const s = this.load();
+      if (s && s.access_token) {
+        try {
+          await fetch(SUPABASE_URL + '/auth/v1/logout', {
+            method: 'POST',
+            headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + s.access_token },
+          });
+        } catch {}
+      }
+      this.clear();
+    },
+  };
+
+  // Adds the signed-in user's token to an Edge Function call. Falls back to the
+  // anon key only so the server can answer with a clean 401 (→ login gate).
+  async function authedFetch(url, opts = {}) {
+    const token = await tbfAuth.getAccessToken();
+    const headers = Object.assign({}, opts.headers, {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: 'Bearer ' + (token || SUPABASE_ANON_KEY),
+    });
+    return fetch(url, Object.assign({}, opts, { headers }));
+  }
+
+  // ─── LOGIN GATE ─────────────────────────────────
+  function showLogin() {
+    const ov = document.getElementById('login-overlay');
+    if (ov) ov.style.display = 'flex';
+  }
+  function hideLogin() {
+    const ov = document.getElementById('login-overlay');
+    if (ov) ov.style.display = 'none';
+  }
+  async function submitLogin(e) {
+    if (e) e.preventDefault();
+    const emailEl = document.getElementById('login-email');
+    const passEl = document.getElementById('login-password');
+    const errEl = document.getElementById('login-error');
+    const btn = document.getElementById('login-btn');
+    const email = (emailEl.value || '').trim();
+    const password = passEl.value || '';
+    if (!email || !password) { errEl.textContent = 'Enter your email and password.'; return; }
+    errEl.textContent = '';
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+    try {
+      await tbfAuth.signIn(email, password);
+      passEl.value = '';
+      hideLogin();
+      enterApp();
+    } catch (err) {
+      errEl.textContent = /invalid/i.test(err.message)
+        ? 'Wrong email or password.'
+        : (err.message || 'Sign-in failed.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+    }
+  }
+  async function signOut() {
+    await tbfAuth.signOut();
+    location.reload();
+  }
+  // Called once we have a session (fresh sign-in or a persisted one): pull live data.
+  function enterApp() {
+    refreshGarminData();
+  }
+
   function setGarminBadges(text, connected) {
     document.querySelectorAll('#garmin-badge, #garmin-sheet-badge').forEach(badge => {
       badge.classList.toggle('connected', !!connected);
       badge.innerHTML = '<div class="gb-dot"></div>' + text;
     });
+  }
+
+  // Fills the Today readiness dial from the server-computed summary (most recent
+  // Body Battery + HRV/sleep context). Honest empty state when Garmin hasn't
+  // synced a reading yet — no fabricated number.
+  function renderReadiness(r) {
+    const dial = document.getElementById('r-dial');
+    const sub = document.getElementById('r-sub');
+    if (!dial) return;
+    if (!r || typeof r.score !== 'number') {
+      dial.textContent = '—';
+      dial.classList.remove('live');
+      if (sub) sub.textContent = 'Body Battery syncs from your watch overnight';
+      return;
+    }
+    dial.textContent = r.score;
+    dial.classList.add('live');
+    if (sub) {
+      const bits = ['Body Battery'];
+      if (r.asOfHoursAgo != null) bits.push(r.asOfHoursAgo <= 1 ? 'just now' : r.asOfHoursAgo + 'h ago');
+      if (r.hrvStatus) bits.push('HRV ' + r.hrvStatus.toLowerCase());
+      else if (r.sleepHours) bits.push(r.sleepHours + 'h sleep');
+      sub.textContent = bits.join(' · ');
+    }
   }
 
   const ACTIVITY_META = {
@@ -2971,12 +3369,16 @@
     setGarminBadges('Checking…', false);
     const sub = document.getElementById('r-sub');
     try {
-      const res = await fetch(GARMIN_DATA_URL, {
-        headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
-        }
-      });
+      const res = await authedFetch(GARMIN_DATA_URL);
+      if (res.status === 401 || res.status === 403) {
+        setGarminBadges('Not connected', false);
+        if (sub) sub.textContent = 'Sign in to sync Garmin';
+        renderRecentActivities([]);
+        renderDetectedActivities([]);
+        initProgress([], false);
+        showLogin();
+        return;
+      }
       const data = await res.json();
       if (res.status === 404) {
         setGarminBadges('Not connected', false);
@@ -2988,7 +3390,10 @@
       }
       if (!res.ok) throw new Error(data.error || 'Sync failed');
       setGarminBadges('Connected', true);
-      if (sub) sub.textContent = 'Synced from Garmin';
+      _lastActivities = data.activities || [];
+      _lastReadiness = data.readiness || null;
+      setGenerateEnabled(true);
+      renderReadiness(data.readiness);
       renderRecentActivities(data.activities);
       renderDetectedActivities(data.activities);
       initProgress(data.activities, true);
@@ -3067,13 +3472,9 @@
     setLabel('Pushing to Garmin…');
     try {
       const workout = buildRunWorkoutFromPanel();
-      const res = await fetch(SUPABASE_URL + '/functions/v1/garmin-push-workout', {
+      const res = await authedFetch(SUPABASE_URL + '/functions/v1/garmin-push-workout', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workout, date: new Date().toISOString().slice(0, 10) })
       });
       const json = await res.json();
@@ -4262,8 +4663,11 @@
   document.addEventListener('DOMContentLoaded', () => {
     applySettings();
     initDate();
-    initWeekStrip();
-    initPlanDays();
+    initPlanState();                    // load saved 2-week plan (with rollover) → sets _planWeeks
+    if (!_planWeeks.A) initPlanDays();    // otherwise render the built-in demo week
+    initWeekStrip();                     // dots reflect the live week
+    document.getElementById('next-week')?.addEventListener('click', () => setViewWeek('B'));
+    document.getElementById('prev-week')?.addEventListener('click', () => setViewWeek('A'));
     initUnits();
     applyUnits();
     initFocus();
@@ -4276,7 +4680,14 @@
     initMobility();
     initInstallPrompt();
     initProgress([], false);
-    refreshGarminData();
+    // Auth gate: only reach out to Garmin once Frank has a session. Local
+    // features (logging, plan, settings) are already rendered above; the login
+    // overlay simply covers them until he signs in the first time.
+    if (tbfAuth.hasSession()) {
+      enterApp();
+    } else {
+      showLogin();
+    }
   });
 </script>
 

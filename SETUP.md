@@ -76,6 +76,51 @@ This prompts for Frank's email, password, and an MFA code if Garmin asks for one
 
 ---
 
-## 5. Anthropic plan-generation proxy — not started
+## 5. Anthropic plan-generation proxy — built (two-week model), needs deploy (2026-07-09)
 
-Key is stored and ready (Section 2). Once Frank's Garmin account is actually connected (Section 4) and confirmed pulling real data, the next Edge Function (`supabase/functions/generate-plan`) will use `ANTHROPIC_API_KEY` server-side to turn his recent Garmin activity + profile focus chips into a dynamic weekly plan.
+The `generate-plan` Edge Function uses `ANTHROPIC_API_KEY` server-side (never in the client) to turn Frank's recent Garmin activity + profile settings into a dynamic plan.
+
+- `supabase/functions/generate-plan/index.ts` — auth-gated (`requireUser`). Claude Messages API (`claude-opus-4-8`) over raw HTTPS with **structured outputs** (`output_config.format` + JSON schema). **Now returns TWO weeks** — `current_week` (live) and `next_week` (projected), each matching the Plan tab session shape (run → `blocks`, strength/mobility → `movements`, rest → empty). next_week progresses from current per the Build/Maintain setting. Effort `medium`, non-streaming, `max_tokens` 8000.
+- `index.html` — a real **two-week plan-state model** (`_planWeeks {A,B}`, `_viewWeek`). "Generate Week" button (live once Garmin connects) stores both weeks into `localStorage` (`planState`). The Plan tab's **◀ ▶ week arrows now work** (toggle live ↔ "Next Week · Projected"). **Weekly rollover:** on the first open of a new week, the projected week auto-becomes the live week (`loadPlanStateFromStorage`). The **Today tab hero and week-strip dots now render from the live week** (wired off the hardcoded demo). Generated run blocks use `×N`/`REC`, so **Push-to-Garmin works on AI sessions**.
+
+**Design decisions (Nicholas, 2026-07-09):** progression is **settings-driven week-to-week** (Build/Maintain, strength focus, injury lay-offs, optional race target) — no rigid periodization. Projected week is a **preview** (regenerated when it rolls over), so a bad/great week still reshapes it. Manually-moved or completed sessions will be **pinned** and protected from AI changes (editing UI is the next increment).
+
+**Verified in preview** (synthetic two-week plan): week A renders, A/B toggle + "Projected" label + next-week dates work, Today hero shows today's live session, strip dots reflect the plan, rollover logic correct, detected-activities section survives re-render. **Not yet hit the live Anthropic API** — needs the deploy.
+
+**Deploy:** `supabase functions deploy generate-plan` (after the §6 auth rollout). Note: `output_config` sends both `effort` + `format`; if the first live call 502s with an upstream error in logs, drop the `effort` key.
+
+### Still to build (next increment — the adaptive layer)
+- **`adjust-plan` Edge Function (Haiku)** + a **daily trigger**: a lightweight once-a-day pass that eases *upcoming, non-pinned, non-completed* days when readiness is low or Frank had a big bouldering/tennis/heavy load. Conservative (touches only today + next day or two, never rewrites the week), with a one-line reason. Haiku for cost since it runs often.
+- **Editable calendar** (chosen UX = enhanced week list + "Move to day"): per-session ⋮ → move to another day / skip / pin. Manual moves pin the session so neither the daily nudge nor regeneration disturbs it.
+
+---
+
+## 7. Readiness dial — fixed, needs `garmin-data` redeploy (2026-07-09)
+
+The Today tab's Readiness dial was a dead feature — `garmin-data` fetched Body Battery / HRV / sleep and the client threw them all away, so the dial sat at "—" even while the card said "Synced from Garmin".
+
+- `supabase/functions/garmin-data/index.ts` — now fetches Body Battery over a **3-day range** (today's values are null until the watch syncs overnight, which is exactly when Frank checks) and computes a `readiness` summary server-side: most-recent non-null Body Battery as the score, plus HRV status and sleep hours as context. Returns `null` (honest empty state) when nothing has synced yet.
+- `index.html` — `renderReadiness()` fills the dial from `data.readiness`, adds the green `.live` styling, and shows "Body Battery · Nh ago · HRV balanced". Honest empty state ("Body Battery syncs from your watch overnight") when there's no reading.
+
+**Verified in preview** (all three states render correctly; live endpoint confirmed returning Body Battery for Frank). **Deploy:** `supabase functions deploy garmin-data`.
+
+---
+
+## 6. Login / privacy gate — code done, needs deploy (2026-07-09)
+
+**Problem it fixes:** the repo is public and the anon key is embedded in `index.html`, so `garmin-data` was readable by anyone who found the repo — Frank's Body Battery, sleep, HRV, and activity history (incl. location) were effectively public. The only real fix for a static public PWA is authentication (a client can't hold a secret an attacker with the live URL can't also read).
+
+**What was built (client + server, verified in preview):**
+- `index.html` — a Supabase-auth module (`tbfAuth`, raw fetch to GoTrue, no new deps), a full-screen login overlay gating the app, `authedFetch()` that attaches Frank's access token to every Edge Function call, 401/403 handling that re-shows the login gate, and a Sign Out row in Profile. Manual features (logging/plan/settings) render underneath; the overlay covers them until first sign-in. Session persists + auto-refreshes, so it's a one-time login.
+- `supabase/functions/_shared/auth.ts` — `requireUser(req)`: rejects the anon key, validates the bearer token via `supabase.auth.getUser()`, and (if `ALLOWED_USER_ID` secret is set) locks access to Frank's user id only.
+- `garmin-data` + `garmin-push-workout` — now call `requireUser` first; anon key → 401.
+- `sw.js` — `CACHE_NAME` bumped `tbf-v4` → `tbf-v5`.
+
+**Deploy steps (do in this order — client is pushed LAST so nobody gets locked out before auth exists):**
+1. **Create Frank's account:** Supabase Dashboard → Authentication → Users → Add user → his email + a password, tick auto-confirm. Give Frank those creds (can be any email — not tied to Garmin).
+2. **Disable public signup:** Dashboard → Authentication → Sign In / Providers → Email → turn off "Allow new users to sign up". Stops anyone else creating an account.
+3. **(Recommended) Lock to Frank's id:** copy his user id from the Users list, then `supabase secrets set ALLOWED_USER_ID=<uid>`. Defense in depth if signup is ever re-enabled.
+4. **Redeploy the two functions:** `supabase functions deploy garmin-data` and `supabase functions deploy garmin-push-workout`.
+5. **Commit + push** `index.html` + `sw.js` so GitHub Pages serves the gated client.
+
+**Still open (write path — next increment):** `garmin-token-upload` and the local `scripts/garmin-connect-frank.mjs` still use the anon key, so an attacker could POST a token to overwrite Frank's stored session (data-integrity/DoS, not a read exposure). Options: gate it behind a `UPLOAD_SECRET` header the script supplies from env, or require a Supabase session in the script. Deferred so the one-shot Garmin login stays simple.

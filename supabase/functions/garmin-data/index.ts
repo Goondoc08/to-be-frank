@@ -4,12 +4,52 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { GarminConnectSDK } from "npm:garmin-connect-sdk@1.0.0-alpha.4";
 import { corsHeaders, handleOptions } from "../_shared/cors.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 const ATHLETE = "frank";
+
+// Distils raw Garmin health payloads into a small readiness summary for the
+// Today dial. Core score is the most recent non-null Body Battery reading
+// (Garmin's own energy metric) across the fetched range; HRV status and sleep
+// are attached as context when present. Returns null when nothing is available
+// yet, so the client can show an honest empty state instead of a fake number.
+// deno-lint-ignore no-explicit-any
+function computeReadiness(bodyBattery: any, hrv: any, sleep: any) {
+  const days = Array.isArray(bodyBattery) ? bodyBattery : (bodyBattery ? [bodyBattery] : []);
+  let latestTs = 0;
+  let latestVal: number | null = null;
+  for (const d of days) {
+    const arr = d?.bodyBatteryValuesArray || [];
+    for (const pair of arr) {
+      const ts = pair?.[0];
+      const val = pair?.[1];
+      if (typeof val === "number" && typeof ts === "number" && ts > latestTs) {
+        latestTs = ts;
+        latestVal = val;
+      }
+    }
+  }
+  if (latestVal === null) return null;
+
+  const hrvStatus = (hrv?.hrvSummary?.status as string | undefined) || null;
+  const sleepSec = sleep?.dailySleepDTO?.sleepTimeSeconds ?? null;
+  const asOfHoursAgo = latestTs ? Math.max(0, Math.round((Date.now() - latestTs) / 3600000)) : null;
+
+  return {
+    score: Math.round(latestVal),
+    asOfHoursAgo,
+    hrvStatus,
+    sleepHours: typeof sleepSec === "number" ? +(sleepSec / 3600).toFixed(1) : null,
+  };
+}
 
 Deno.serve(async (req) => {
   const preflight = handleOptions(req);
   if (preflight) return preflight;
+
+  // Only a signed-in user may read Frank's Garmin data (not the public anon key).
+  const auth = await requireUser(req);
+  if (auth instanceof Response) return auth;
 
   const url = new URL(req.url);
   const date = url.searchParams.get("date") ?? new Date().toISOString().slice(0, 10);
@@ -60,16 +100,22 @@ Deno.serve(async (req) => {
     // comparisons, with a little slack. limit is generous since strength/mobility
     // sessions share the window with runs and shouldn't crowd them out.
     const startDate = new Date(Date.now() - 70 * 86400000);
+    // Body Battery is fetched over a short range (not just `date`) so the
+    // readiness dial can fall back to the most recent reading — today's values
+    // are null until the watch syncs, which is usually exactly when Frank checks.
+    const bbStart = new Date(new Date(date).getTime() - 3 * 86400000).toISOString().slice(0, 10);
     const [heartRate, bodyBattery, hrv, sleep, activities] = await Promise.all([
       sdk.health.getHeartRate(date).catch(() => null),
-      sdk.health.getBodyBattery(date).catch(() => null),
+      sdk.health.getBodyBattery({ start: bbStart, end: date }).catch(() => null),
       sdk.health.getHrvStatus(date).catch(() => null),
       sdk.sleep.getDailySleep(date).catch(() => null),
       sdk.activities.list({ limit: 200, startDate, endDate: date }).catch(() => []),
     ]);
 
+    const readiness = computeReadiness(bodyBattery, hrv, sleep);
+
     return new Response(
-      JSON.stringify({ date, heartRate, bodyBattery, hrv, sleep, activities }),
+      JSON.stringify({ date, readiness, heartRate, bodyBattery, hrv, sleep, activities }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
