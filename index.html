@@ -1537,7 +1537,7 @@
       <!-- Greeting -->
       <div style="margin-bottom:var(--sp-md)">
         <div class="label" id="today-date"></div>
-        <div style="font-size:26px;font-weight:700;letter-spacing:-0.5px;margin-top:3px">Morning, Frank.</div>
+        <div style="font-size:26px;font-weight:700;letter-spacing:-0.5px;margin-top:3px" id="home-greeting">Morning, Frank.</div>
       </div>
 
       <!-- Readiness -->
@@ -2567,6 +2567,102 @@
     if (rd) rd.min = localISO(now);
   }
 
+  // ─── HOME GREETING ───────────────────────────────
+  // Local, non-AI message pool — fortune-cookie style, loosely flavored by
+  // today's session type and time of day. Picked deterministically (hashed
+  // from the date + bucket keys) so it's stable across reloads/re-renders
+  // within the same day instead of re-rolling on every render.
+  const GREETINGS = {
+    none: {
+      morning: ['Morning.', 'Good morning.'],
+      afternoon: ['Afternoon.', 'Good afternoon.'],
+      evening: ['Evening.', 'Good evening.'],
+      night: ['Late one.', 'Hey there, night owl.'],
+    },
+    rest: {
+      morning: ['Rest is where the gains actually happen.', 'A quiet morning is still progress.'],
+      afternoon: ['Recovery is part of the work, not a break from it.', 'Some days the work is doing nothing.'],
+      evening: ["Tomorrow's strength is built in tonight's rest.", 'Slow evenings build fast mornings.'],
+      night: ['Sleep is a training session too.', "The best recovery starts with a good night's rest."],
+    },
+    run: {
+      morning: ['The road rewards those who show up early.', 'Morning miles set the tone.'],
+      afternoon: ['The road rewards those who show up.', 'Every mile starts with the first step out the door.'],
+      evening: ['Sunset miles have a rhythm all their own.', 'Miles under a fading sky hit different.'],
+      night: ["The road doesn't check the clock.", 'Even the late miles count.'],
+    },
+    strength: {
+      morning: ['Iron sharpens iron, one rep at a time.', 'Morning is for building things.'],
+      afternoon: ['Strength finds you when you show up.', 'Small weights, moved consistently, build big things.'],
+      evening: ["The best lifts happen when no one's counting but you.", 'Strength built in quiet hours counts the same.'],
+      night: ["Iron doesn't check the clock.", 'Late lifts still stack up.'],
+    },
+    mobility: {
+      morning: ['Flexibility today, strength tomorrow.', 'Loose hips, long runs.'],
+      afternoon: ['Small movements, big changes.', 'The body remembers what you give it time for.'],
+      evening: ['Slow work is still work.', 'Unwinding is its own kind of progress.'],
+      night: ['Stillness has its own kind of strength.', 'Even quiet movement moves you forward.'],
+    },
+    stacked: {
+      morning: ['Great days are built, not given.', 'Ambition looks good on you today.'],
+      afternoon: ['Big days separate the consistent from the occasional.', 'More work, more reward.'],
+      evening: ['Full days build full lives.', 'Today asked more of you — and you showed up.'],
+      night: ['A full day well spent.', "Big efforts deserve a good night's rest."],
+    },
+  };
+
+  const GREETINGS_COMPLETED = {
+    run: ['Miles banked. Well done.', "That's one more deposit in the bank."],
+    strength: ['Strength stacks up, one session at a time.', 'That work is already paying off.'],
+    mobility: ['Your body says thank you.', 'Small effort, real payoff.'],
+    stacked: ["Two sessions down. That's a big day, well spent.", 'Doubled up and finished strong.'],
+  };
+
+  function greetingTimeBucket() {
+    const h = new Date().getHours();
+    if (h < 5) return 'night';
+    if (h < 12) return 'morning';
+    if (h < 17) return 'afternoon';
+    if (h < 21) return 'evening';
+    return 'night';
+  }
+
+  // Today's session bucket + whether every real session in it is completed
+  // (a partially-done stacked day still reads as plain "stacked", not done).
+  function greetingSessionState() {
+    if (!_planWeeks.A) return { bucket: 'none', completed: false };
+    const day = _planWeeks.A[todayIdx()];
+    const real = (day?.sessions || []).filter(s => REAL_TYPES.includes(s.type));
+    if (!real.length) return { bucket: 'rest', completed: false };
+    const bucket = real.length > 1 ? 'stacked' : real[0].type;
+    return { bucket, completed: real.every(s => s.completed) };
+  }
+
+  // Simple deterministic string hash — same pool index all day instead of
+  // re-rolling on every render.
+  function _greetingHash(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
+    return Math.abs(h);
+  }
+
+  function renderGreeting() {
+    const el = document.getElementById('home-greeting');
+    if (!el) return;
+    const now = new Date();
+    if (now.getMonth() === 10 && now.getDate() === 26) { // Nov 26, every year
+      el.textContent = 'Happy Birthday, Frank! 🎉';
+      return;
+    }
+    const tb = greetingTimeBucket();
+    const { bucket, completed } = greetingSessionState();
+    const pool = (completed && GREETINGS_COMPLETED[bucket])
+      || (GREETINGS[bucket] && GREETINGS[bucket][tb])
+      || GREETINGS.none[tb];
+    const seed = _greetingHash(todayISO() + '|' + tb + '|' + bucket + '|' + completed);
+    el.textContent = pool[seed % pool.length];
+  }
+
   // ─── WEEK STRIP ─────────────────────────────────
   function initWeekStrip() {
     const strip = document.getElementById('week-strip');
@@ -2850,6 +2946,7 @@
   // Shows today's first prescribed session; if the day is stacked, a small
   // "+N more" chip opens the day sheet with the rest.
   function renderTodayHero() {
+    renderGreeting();
     const hero = document.getElementById('today-hero');
     if (!hero) return;
     const rawDay = _planWeeks.A ? _planWeeks.A[todayIdx()] : null;
