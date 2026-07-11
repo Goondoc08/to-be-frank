@@ -131,9 +131,20 @@ Per Nicholas: the manual "Log Activity" screen and the "Upcoming" planned-events
 
 **Verified in preview:** past-log with subtype + mi→km conversion; future multi-day trip creation; the initial bug where a same-day *completed* run leaked into "Upcoming" (fixed by refining `isEntryUpcoming` to treat a same-day entry as historical once it has real duration/distance recorded); aging a future entry into the past and confirming it drops out of Upcoming, surfaces as "Add details ›" in Recent Activity, and — critically — editing it in place (subtype + performance fields unlock, save updates the same record, log count unchanged) rather than creating a duplicate.
 
-### Still to build (next increment — the adaptive layer)
-- **`adjust-plan` Edge Function (Haiku)** + a **daily trigger**: a lightweight once-a-day pass that eases *upcoming, non-pinned, non-completed* days when readiness is low or Frank had a big bouldering/tennis/heavy load. Conservative (touches only today + next day or two, never rewrites the week), with a one-line reason. Haiku for cost since it runs often. **The load signal is already wired** — `buildActivitySummary` now includes `recentOtherLoad` (see §8), so `adjust-plan` just consumes it.
-- **Editable calendar — BUILT (drag-to-move), see §9 below.** Remaining nicety: a "skip / make rest" action and an explicit unpin (currently moving is the only way to pin; there's no manual unpin yet).
+### Daily adaptive layer — BUILT + DEPLOYED (2026-07-11)
+- **`supabase/functions/adjust-plan/index.ts` (claude-haiku-4-5)** — deployed and verified (anon key → 401, clean boot). Structured outputs (`output_config.format` only — **Haiku does not support the `effort` key**, sending it errors). Returns `{no_change, reason, adjustments:[{idx, day}]}` with the same day schema as generate-plan.
+- **Client trigger `maybeDailyAdjust()`** (in `refreshGarminData`, after `maybeAutoGenerate`): fires at most once/day (`data.lastAdjustISO`), skipped on the day a plan was generated, on stale weeks, or while generating. Applies only days `todayIdx()..6`, never pinned/completed (enforced client-side too). Shows `"Adjusted: <reason>"` in `#plan-autostatus`.
+- **Design decision (Nicholas, 2026-07-11): settings changes do NOT trigger a weekly regen.** Injury/focus/approach changes are picked up by the next daily adjust pass instead — keeps API usage light. Race target save still triggers a full regen (rare, plan-defining). The prompt tells Haiku the settings "may have changed since the week was generated" for exactly this purpose.
+
+### Comprehensive review fixes (2026-07-11, deployed + pushed, v12)
+- **Train tab Run panel now renders from the live plan** (`renderRunPanel()`, called via `renderTodayHero()`): today's run, else the next run this week, else an honest empty state. `#panel-run.dataset.dateISO` carries the run's real calendar date and **`pushRunToGarmin` schedules on that date** (previously the panel was a hardcoded Tempo Intervals mockup and push always sent that, dated today).
+- **Skip / unpin**: session sheets (Plan tab + Today hero) now include "Skip — make it a rest day" (day becomes pinned Rest) and "Unpin 📌" when pinned.
+- **Completed days**: finishing a guided strength or mobility session marks the matching plan day `completed:true` (✓ badge); completed days survive same-week regeneration and are off-limits to adjust-plan.
+- **Mobility is a guided session** (`startMobility()` → same overlay as warm-up, timed holds parsed from the catalog rx) and auto-logs on completion.
+- **Week Summary pills (Today) + Personal Bests (Progress) are live** from merged activity history (were hardcoded zeros / dead "Add time" placeholders). PBs = fastest avg pace per distance band (5K/10K/Half/Marathon).
+- **Dead UI removed**: sheet-swap ("Session Options" — all rows were no-ops), Weekly Run Target row, static demo Today hero, hardcoded demo `PLAN_DATA` week, demo week-strip dots. Pre-generation the app now shows an honest empty week + "Your first week builds automatically once Garmin connects."
+- **Focus chips now send their full description** (`FOCUS_DETAILS` map → `profile.focusDetail`) to generate-plan and adjust-plan — the model previously only saw slugs like "cadence". No generate-plan redeploy needed (it rides in the profile JSON).
+- Small: race-date `min` uses `localISO` (was `.toISOString()` — the documented UTC bug class); injury toggles re-render an open strength overview; deleted dead `toggleUnits()`/`#pref-units` code and unused `plan:{}` data field. `sw.js` v11→v12, `APP_VERSION` v12 + What's New entries.
 
 ---
 
