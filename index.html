@@ -1556,41 +1556,8 @@
           <div class="label">Today</div>
         </div>
 
-        <div class="session-hero" id="today-hero" data-type="run">
-          <div class="sh-top">
-            <div class="sh-icon">
-              <!-- Running shoe / pace icon -->
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12,6 12,12 16,14"/>
-              </svg>
-            </div>
-            <span class="badge badge-run">Run</span>
-          </div>
-          <div class="sh-name">Tempo Intervals</div>
-          <div class="sh-desc">3 × 8 min at threshold pace with 3 min easy recovery. Build your lactate ceiling.</div>
-          <div class="sh-meta">
-            <div class="sh-meta-item">
-              <div class="mv">52 min</div>
-              <div class="ml">Duration</div>
-            </div>
-            <div class="sh-meta-item">
-              <div class="mv"><span data-km="10" data-format="approx">~10 km</span></div>
-              <div class="ml">Distance</div>
-            </div>
-            <div class="sh-meta-item">
-              <div class="mv">Med–High</div>
-              <div class="ml">Effort</div>
-            </div>
-          </div>
-          <div class="sh-actions">
-            <button class="btn btn-primary" style="flex:1" onclick="goToSession(this.closest('.session-hero').dataset.type)">View Session</button>
-            <button class="btn btn-secondary" onclick="openSheet('sheet-swap')">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
-              </svg>
-            </button>
-          </div>
+        <div class="session-hero" id="today-hero" data-type="rest">
+          <!-- rendered by renderTodayHero() -->
         </div>
       </div>
 
@@ -1610,19 +1577,19 @@
         <div class="label" style="margin-bottom:var(--sp-sm)">Week Summary</div>
         <div class="stat-row">
           <div class="stat-pill">
-            <div class="sv">0<sub data-unit="dist-label">km</sub></div>
+            <div class="sv"><span id="ws-dist" data-km="0" data-format="num">0</span><sub data-unit="dist-label">km</sub></div>
             <div class="sl">Run</div>
           </div>
           <div class="stat-pill">
-            <div class="sv">0</div>
+            <div class="sv" id="ws-sessions">0</div>
             <div class="sl">Sessions</div>
           </div>
           <div class="stat-pill">
-            <div class="sv">0</div>
-            <div class="sl" style="display:flex;align-items:center;gap:3px">Load <span class="info-btn" style="margin-left:0" onclick="showTip(this,'Training load estimates total stress across all activities this week — duration, intensity, and type combined. Tracks week-over-week to avoid overreaching.')">?</span></div>
+            <div class="sv" id="ws-load">0</div>
+            <div class="sl" style="display:flex;align-items:center;gap:3px">Load <span class="info-btn" style="margin-left:0" onclick="showTip(this,'Training load estimates total stress across all activities this week — total minutes across every activity type. Tracks week-over-week to avoid overreaching.')">?</span></div>
           </div>
           <div class="stat-pill">
-            <div class="sv">0<sub>h</sub></div>
+            <div class="sv"><span id="ws-active">0</span><sub>h</sub></div>
             <div class="sl">Active</div>
           </div>
         </div>
@@ -1701,52 +1668,20 @@
         <div class="session-tab mobility-tab" onclick="switchTrainTab('mobility', this)">Mobility</div>
       </div>
 
-      <!-- ── RUN PANEL ── -->
+      <!-- ── RUN PANEL (rendered from the live plan by renderRunPanel) ── -->
       <div class="train-panel active" id="panel-run">
         <div style="margin-bottom:var(--sp-md)">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-sm)">
-            <span class="badge badge-run">Threshold</span>
-            <span style="font-size:12px;color:var(--text-secondary)">52 min · <span data-km="10" data-format="approx">~10 km</span></span>
+            <span class="badge badge-run" id="run-badge">Run</span>
+            <span style="font-size:12px;color:var(--text-secondary)" id="run-meta"></span>
           </div>
-          <div style="font-size:22px;font-weight:700;letter-spacing:-0.4px;margin-bottom:5px">Tempo Intervals</div>
-          <div style="font-size:13px;color:var(--text-secondary);line-height:1.5">
-            Warm-up 10 min → 3 × 8 min at threshold → 3 min recovery each → Cool-down 10 min
-          </div>
+          <div style="font-size:22px;font-weight:700;letter-spacing:-0.4px;margin-bottom:5px" id="run-title">Run</div>
+          <div style="font-size:13px;color:var(--text-secondary);line-height:1.5" id="run-desc"></div>
+          <div style="font-size:11px;color:var(--text-tertiary);margin-top:6px" id="run-for-day"></div>
         </div>
         <div class="label" style="margin-bottom:var(--sp-sm)">Session Structure</div>
-        <div class="card card-p" style="margin-bottom:var(--sp-md)">
-          <div class="run-block">
-            <div class="rb-icon">🏃</div>
-            <div class="rb-info">
-              <div class="rbn">Warm-up</div>
-              <div class="rbsb">Easy pace · Zone 2 · relaxed breathing</div>
-            </div>
-            <div class="rb-dur">10 min</div>
-          </div>
-          <div class="run-block">
-            <div class="rb-icon">×3</div>
-            <div class="rb-info">
-              <div class="rbn">Threshold Interval</div>
-              <div class="rbsb">Zone 4 · comfortably hard · nose breathing challenged</div>
-            </div>
-            <div class="rb-dur">8 min</div>
-          </div>
-          <div class="run-block">
-            <div class="rb-icon" style="font-size:11px">REC</div>
-            <div class="rb-info">
-              <div class="rbn">Recovery Jog</div>
-              <div class="rbsb">Easy between each interval · HR drops to Zone 2</div>
-            </div>
-            <div class="rb-dur">3 min</div>
-          </div>
-          <div class="run-block">
-            <div class="rb-icon">🏃</div>
-            <div class="rb-info">
-              <div class="rbn">Cool-down</div>
-              <div class="rbsb">Easy pace · let heart rate fully settle</div>
-            </div>
-            <div class="rb-dur">10 min</div>
-          </div>
+        <div class="card card-p" style="margin-bottom:var(--sp-md)" id="run-blocks">
+          <div style="padding:14px 0;text-align:center;font-size:12px;color:var(--text-tertiary)">Your plan's next run appears here once it's generated</div>
         </div>
         <button class="btn btn-secondary btn-full" style="margin-bottom:var(--sp-sm)" onclick="startWarmup()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
@@ -1787,7 +1722,7 @@
         <div class="movement-list" id="mobility-list" style="margin-bottom:var(--sp-md)">
           <!-- rendered by renderMobilityList() -->
         </div>
-        <button class="btn btn-primary btn-full" style="margin-bottom:var(--sp-sm)" onclick="requestWakeLock()">
+        <button class="btn btn-primary btn-full" style="margin-bottom:var(--sp-sm)" onclick="startMobility()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
           Start Session
         </button>
@@ -1874,28 +1809,11 @@
         </div>
       </div>
 
-      <!-- Personal Bests -->
+      <!-- Personal Bests (from real run history — fastest avg pace per distance band) -->
       <div class="label" style="margin-bottom:var(--sp-sm)">Personal Bests</div>
-      <div class="pb-grid" style="margin-bottom:var(--sp-xl)">
-        <div class="pb-item">
-          <div class="pb-dist">5K</div>
-          <div class="pb-time">—</div>
-          <div class="pb-sub">Add time</div>
-        </div>
-        <div class="pb-item">
-          <div class="pb-dist">10K</div>
-          <div class="pb-time">—</div>
-          <div class="pb-sub">Add time</div>
-        </div>
-        <div class="pb-item">
-          <div class="pb-dist">Half</div>
-          <div class="pb-time">—</div>
-          <div class="pb-sub">Add time</div>
-        </div>
-        <div class="pb-item">
-          <div class="pb-dist">Marathon</div>
-          <div class="pb-time">—</div>
-          <div class="pb-sub">Add time</div>
+      <div class="pb-grid" style="margin-bottom:var(--sp-xl)" id="pb-grid">
+        <div class="pb-item" style="grid-column:1/-1">
+          <div class="pb-sub">Best efforts appear here as runs sync from Garmin</div>
         </div>
       </div>
 
@@ -1943,12 +1861,6 @@
               <div class="seg-btn" id="approach-maintain" onclick="setApproach('maintain')">Maintain</div>
               <div class="seg-btn active" id="approach-build" onclick="setApproach('build')">Build</div>
             </div>
-          </div>
-
-          <!-- Weekly Run Target -->
-          <div class="settings-row">
-            <div class="sr-info"><div class="sr-title">Weekly Run Target</div></div>
-            <div class="sr-val">— ›</div>
           </div>
 
           <!-- Race Target -->
@@ -2365,34 +2277,6 @@
   </div>
 </div>
 
-<!-- Swap Session -->
-<div class="overlay" id="sheet-swap" onclick="closeSheet('sheet-swap')">
-  <div class="sheet" onclick="event.stopPropagation()">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">Session Options</div>
-    <div class="settings-row" onclick="closeSheet('sheet-swap')">
-      <div class="sr-info">
-        <div class="sr-title">Swap Session</div>
-        <div class="sr-sub">Replace with a different workout type</div>
-      </div>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="color:var(--text-tertiary)"><polyline points="9,18 15,12 9,6"/></svg>
-    </div>
-    <div class="settings-row" onclick="closeSheet('sheet-swap')">
-      <div class="sr-info">
-        <div class="sr-title">Move to Another Day</div>
-        <div class="sr-sub">Reschedule without losing the session</div>
-      </div>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="color:var(--text-tertiary)"><polyline points="9,18 15,12 9,6"/></svg>
-    </div>
-    <div class="settings-row" style="border-bottom:none" onclick="closeSheet('sheet-swap')">
-      <div class="sr-info">
-        <div class="sr-title" style="color:#c45c5c">Skip Today</div>
-        <div class="sr-sub">Mark as skipped, plan adjusts</div>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- Session Detail (Plan → sheet) -->
 <div class="overlay" id="sheet-session" onclick="closeSheet('sheet-session')">
   <div class="sheet" onclick="event.stopPropagation()">
@@ -2646,9 +2530,10 @@
     document.getElementById('today-date').textContent =
       `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
 
-    // Pre-fill race date min to today
+    // Pre-fill race date min to today (local date — .toISOString() is UTC and
+    // shifts a day during US evenings; see localISO note below)
     const rd = document.getElementById('race-date');
-    if (rd) rd.min = now.toISOString().split('T')[0];
+    if (rd) rd.min = localISO(now);
   }
 
   // ─── WEEK STRIP ─────────────────────────────────
@@ -2661,10 +2546,10 @@
     const dow = now.getDay();
     const mondayOff = dow === 0 ? -6 : 1 - dow;
 
-    // Session-type dots from the live plan week (demo pattern until one exists).
+    // Session-type dots from the live plan week (empty until one exists).
     const actTypes = _planWeeks.A
       ? _planWeeks.A.map(dd => (dd && ['run','strength','mobility'].includes(dd.type)) ? dd.type : null)
-      : ['run','strength','run','mobility','run','strength',null];
+      : [null, null, null, null, null, null, null];
     while (actTypes.length < 7) actTypes.push(null);
 
     labels.forEach((lbl, i) => {
@@ -2690,86 +2575,10 @@
   // ─── PLAN DAYS ──────────────────────────────────
   // Plan = only prescribed training: runs, strength, mobility.
   // Tennis / bouldering appear via Garmin detection and shift plan intensity.
-  let PLAN_DATA = [
-    { sessions: [{
-      name: 'Easy Run', sub: '45 min · Zone 2 · conversational', type: 'run', dur: '45m',
-      badge: 'Easy Run', badgeClass: 'badge-run', meta: '45 min · ~9 km',
-      title: 'Easy Run',
-      desc: 'Conversational pace throughout. Zone 2 heart rate — you should be able to hold a full sentence.',
-      blocks: [
-        { icon: '🏃', name: 'Warm-up Walk/Jog', sub: '5 min easy · let the body warm up', dur: '5 min' },
-        { icon: '🏃', name: 'Easy Run', sub: 'Zone 2 · conversational · nose breathing comfortable', dur: '35 min' },
-        { icon: '🏃', name: 'Cool-down Walk', sub: 'Let HR settle before stopping', dur: '5 min' },
-      ]
-    }]},
-    { sessions: [{
-      name: 'Runner Strength A', sub: 'Posterior chain · hips · core', type: 'strength', dur: '50m',
-      badge: 'Runner Strength A', badgeClass: 'badge-strength', meta: '50 min · Beginner',
-      title: 'Posterior Chain + Core',
-      desc: 'Runner-focused: glutes, hamstrings, single-leg stability, anti-rotation core. Complements bouldering — no competing grip/shoulder load.',
-      movements: [
-        { thumb: '🦵', name: 'Goblet Squat', detail: '3 × 12 reps · moderate load · full depth' },
-        { thumb: '🍑', name: 'Romanian Deadlift', detail: '3 × 10 reps · slow 3-sec eccentric' },
-        { thumb: '🧘', name: 'Copenhagen Plank', detail: '3 × 20 sec each side · adductor + core' },
-        { thumb: '🦶', name: 'Single-leg Calf Raise', detail: '3 × 15 reps · slow and controlled · off a step' },
-        { thumb: '⚡', name: 'Dead Bug', detail: '3 × 10 each side · lower back stays flat' },
-        { thumb: '🏋️', name: 'Bulgarian Split Squat', detail: '3 × 8 each leg · bodyweight to start' },
-      ]
-    }]},
-    { sessions: [{
-      name: 'Tempo Intervals', sub: '3 × 8 min threshold pace', type: 'run', dur: '52m',
-      badge: 'Threshold', badgeClass: 'badge-run', meta: '52 min · ~10 km',
-      title: 'Tempo Intervals',
-      desc: 'Warm-up 10 min → 3 × 8 min at threshold → 3 min recovery each → Cool-down 10 min',
-      blocks: [
-        { icon: '🏃', name: 'Warm-up', sub: 'Easy pace · Zone 2 · relaxed breathing', dur: '10 min' },
-        { icon: '×3', name: 'Threshold Interval', sub: 'Zone 4 · comfortably hard · nose breathing challenged', dur: '8 min' },
-        { icon: 'REC', iconSm: true, name: 'Recovery Jog', sub: 'Easy between each interval · HR drops to Zone 2', dur: '3 min' },
-        { icon: '🏃', name: 'Cool-down', sub: 'Easy pace · let heart rate fully settle', dur: '10 min' },
-      ]
-    }]},
-    { sessions: [{
-      name: 'Mobility & Recovery', sub: 'Hip flexors · IT band · thoracic', type: 'mobility', dur: '25m',
-      badge: 'Mobility', badgeClass: 'badge-mobility', meta: '25 min · daily friendly',
-      title: 'Hip, IT Band & Thoracic',
-      desc: "Runner's essential maintenance. Targets the areas most restricted by high mileage, bouldering posture, and desk time.",
-      movements: [
-        { thumb: '🧎', name: 'Hip Flexor Lunge Stretch', detail: '60 sec each side · posterior tilt to feel the pull' },
-        { thumb: '🦵', name: 'IT Band / Pigeon Pose', detail: '90 sec each side · breathe into the hip' },
-        { thumb: '🦴', name: '90/90 Hip Rotation', detail: '60 sec each side · internal + external rotation' },
-        { thumb: '🌀', name: 'Thoracic Rotation (Thread the Needle)', detail: '10 slow reps each side · open the upper back' },
-        { thumb: '🦶', name: 'Calf & Achilles Stretch', detail: '60 sec each · straight leg then bent knee' },
-        { thumb: '🤸', name: 'Standing Hamstring Sweep', detail: '10 slow reps each leg · keep spine neutral' },
-        { thumb: '💆', name: "Child's Pose with Lat Reach", detail: '60 sec · decompress the spine · breathe' },
-      ]
-    }]},
-    { sessions: [{
-      name: 'Long Run', sub: 'Easy pace · build to 90 min', type: 'run', dur: '80m',
-      badge: 'Long Run', badgeClass: 'badge-run', meta: '80 min · ~16 km',
-      title: 'Long Run',
-      desc: 'Easy, sustained effort. The cornerstone of your week — build aerobic base and fat adaptation.',
-      blocks: [
-        { icon: '🏃', name: 'Easy Warm-up', sub: '10 min easy jog · feel out the legs', dur: '10 min' },
-        { icon: '🏃', name: 'Sustained Easy Run', sub: "Zone 2 throughout · conversational · don't race it", dur: '60 min' },
-        { icon: '🏃', name: 'Cool-down', sub: '10 min easy jog then walk · HR fully settles', dur: '10 min' },
-      ]
-    }]},
-    { sessions: [{
-      name: 'Runner Strength B', sub: 'Single-leg · power · injury prevention', type: 'strength', dur: '45m',
-      badge: 'Runner Strength B', badgeClass: 'badge-strength', meta: '45 min · Beginner',
-      title: 'Single-leg & Power',
-      desc: 'Single-leg focus for running-specific stability and power. Lower volume than A — quality over quantity.',
-      movements: [
-        { thumb: '🦵', name: 'Step-up', detail: '3 × 10 each leg · slow controlled descent' },
-        { thumb: '🏋️', name: 'Single-leg Romanian Deadlift', detail: '3 × 8 each leg · hip hinge · balance focus' },
-        { thumb: '⚡', name: 'Lateral Band Walk', detail: '3 × 15 steps each direction · medium band' },
-        { thumb: '🍑', name: 'Single-leg Glute Bridge', detail: '3 × 12 each side · squeeze at top' },
-        { thumb: '🧘', name: 'Side-lying Hip Abduction', detail: '3 × 15 each side · slow and controlled' },
-        { thumb: '💪', name: 'Pallof Press', detail: '3 × 10 each side · anti-rotation · stand tall' },
-      ]
-    }]},
-    { sessions: [] }
-  ];
+  // Rendered plan days for the viewed week. Starts empty — the real week is
+  // mapped in from _planWeeks by renderPlanView() (generated by the AI, or an
+  // honest empty state before the first generation).
+  let PLAN_DATA = [];
 
   // ─── PLAN STATE (two weeks: A = live, B = projected) ─────
   let _planWeeks = { A: null, B: null };
@@ -2802,7 +2611,7 @@
       const s = {
         name: d.name, sub: d.sub, type: d.type, dur: d.dur,
         badge: d.name, badgeClass: 'badge-' + d.type, meta: d.meta, title: d.title, desc: d.desc,
-        pinned: !!d.pinned,
+        pinned: !!d.pinned, completed: !!d.completed,
       };
       if (d.type === 'run') s.blocks = d.blocks || [];
       else s.movements = d.movements || [];
@@ -2848,7 +2657,7 @@
           <div class="plan-session-card" onclick="openPlanSheet(${i})">
             <div class="psc-dot" style="background:${typeColor[s.type] || 'var(--text-tertiary)'}"></div>
             <div class="psc-info">
-              <div class="psc-name">${s.name}${s.pinned ? ' <span class="psc-pin" title="Pinned — the plan will not move this">📌</span>' : ''}</div>
+              <div class="psc-name">${s.name}${s.completed ? ' <span class="psc-pin" title="Completed" style="color:var(--accent)">✓</span>' : ''}${s.pinned ? ' <span class="psc-pin" title="Pinned — the plan will not move this">📌</span>' : ''}</div>
               <div class="psc-sub">${s.sub}</div>
             </div>
             <div class="psc-dur">${s.dur}</div>
@@ -2963,6 +2772,7 @@
 
   // ─── TODAY HERO (live week's session for today) ─────
   function renderTodayHero() {
+    renderRunPanel(); // the Train tab's run always mirrors the live plan
     const hero = document.getElementById('today-hero');
     if (!hero) return;
     const day = _planWeeks.A ? _planWeeks.A[todayIdx()] : null;
@@ -2991,11 +2801,77 @@
       </div>`;
   }
 
+  // ─── RUN PANEL (Train tab — always shows the live plan's relevant run) ─────
+  // Today's run if today is a run day, otherwise the next run day this week.
+  // The panel's dataset carries the run's calendar date so Push-to-Garmin
+  // schedules the workout on the right day, not blindly on today.
+  function renderRunPanel() {
+    const blocksEl = document.getElementById('run-blocks');
+    const panel = document.getElementById('panel-run');
+    if (!blocksEl || !panel) return;
+
+    let day = null, dayIdx = -1;
+    if (_planWeeks.A) {
+      const t = todayIdx();
+      if (_planWeeks.A[t] && _planWeeks.A[t].type === 'run') { day = _planWeeks.A[t]; dayIdx = t; }
+      else {
+        for (let i = t + 1; i < 7; i++) {
+          if (_planWeeks.A[i] && _planWeeks.A[i].type === 'run') { day = _planWeeks.A[i]; dayIdx = i; break; }
+        }
+      }
+    }
+
+    const badge = document.getElementById('run-badge');
+    const meta  = document.getElementById('run-meta');
+    const title = document.getElementById('run-title');
+    const desc  = document.getElementById('run-desc');
+    const forDay = document.getElementById('run-for-day');
+    const pushBtn = document.getElementById('garmin-push-btn');
+
+    if (!day) {
+      panel.dataset.dateISO = todayISO();
+      if (badge) badge.textContent = 'Run';
+      if (title) title.textContent = 'No run scheduled';
+      if (meta)  meta.textContent = '';
+      if (desc)  desc.textContent = _planWeeks.A
+        ? 'No more runs on this week’s plan. Log one manually if you head out anyway.'
+        : 'Your plan’s runs appear here once the first week is generated.';
+      if (forDay) forDay.textContent = '';
+      blocksEl.innerHTML = '<div style="padding:14px 0;text-align:center;font-size:12px;color:var(--text-tertiary)">Nothing scheduled</div>';
+      if (pushBtn) pushBtn.style.display = 'none';
+      return;
+    }
+
+    const now = new Date();
+    const mondayOff = (now.getDay() === 0 ? -6 : 1 - now.getDay());
+    const d = new Date(now);
+    d.setDate(now.getDate() + mondayOff + dayIdx);
+    panel.dataset.dateISO = localISO(d);
+    const isToday = dayIdx === todayIdx();
+
+    if (badge) badge.textContent = day.name || 'Run';
+    if (meta)  meta.textContent = day.meta || day.dur || '';
+    if (title) title.textContent = day.title || day.name || 'Run';
+    if (desc)  desc.textContent = day.desc || '';
+    if (forDay) forDay.textContent = isToday ? 'Scheduled for today'
+      : 'Scheduled for ' + d.toLocaleDateString(undefined, { weekday: 'long' }) + ' — pushing sends it to that day on Garmin';
+    blocksEl.innerHTML = (day.blocks || []).map(b => `
+      <div class="run-block">
+        <div class="rb-icon"${(b.icon === 'REC') ? ' style="font-size:11px"' : ''}>${b.icon}</div>
+        <div class="rb-info">
+          <div class="rbn">${b.name}</div>
+          <div class="rbsb">${b.sub}</div>
+        </div>
+        <div class="rb-dur">${b.dur}</div>
+      </div>`).join('') || '<div style="padding:14px 0;text-align:center;font-size:12px;color:var(--text-tertiary)">No structure for this session</div>';
+    if (pushBtn) pushBtn.style.display = '';
+  }
+
   function openTodaySession() {
     const day = _planWeeks.A ? _planWeeks.A[todayIdx()] : null;
     if (!day || !['run', 'strength', 'mobility'].includes(day.type)) return;
     const s = mapWeekToData([day])[0].sessions[0];
-    document.getElementById('sheet-session-inner').innerHTML = buildSessionSheetHTML(s, true);
+    document.getElementById('sheet-session-inner').innerHTML = buildSessionSheetHTML(s, true, 'A', todayIdx());
     openSheet('sheet-session');
   }
 
@@ -3070,6 +2946,81 @@
     if (!_planWeeks.A || stale) generatePlan({ silent: true });
   }
 
+  // What each Current Focus chip actually promises in the UI — sent to the plan
+  // generator so the model sees the behavior, not just a slug like "cadence".
+  const FOCUS_DETAILS = {
+    'run-longer': 'Run Further — longer long run, +5–10% weekly mileage',
+    'run-faster': 'Run Faster — more tempo & intervals, less easy volume',
+    'cadence':    'Improve Cadence — cadence drills + metronome-paced runs',
+    'economy':    'Run Economy — strides, form work + plyometrics',
+    'glutes':     'Glutes & Hips — hip-focused strength + mobility work',
+    'core':       'Core Stability — anti-rotation + dead bug progressions',
+    'power':      'Lower Body Power — explosive squats, deadlifts + plyos',
+    'injury':     'Injury Prevention — lower intensity, more mobility sessions',
+  };
+
+  // ─── DAILY ADJUST (Haiku — cheap, conservative) ─────
+  // Once a day, lets the model ease the next day or two when readiness is low,
+  // recent non-run load is high, or settings (injury/focus/approach) changed
+  // since the week was generated. Settings changes therefore take effect the
+  // next day WITHOUT a full weekly regeneration. Never touches pinned,
+  // completed, or past days; skipped entirely on the day a plan was generated.
+  let _adjusting = false;
+  async function maybeDailyAdjust() {
+    if (!_garminConnected || _generating || _adjusting || !_planWeeks.A) return;
+    const d = loadData();
+    const ps = d.planState;
+    if (!ps || ps.weekStartISO !== mondayISO(new Date())) return; // stale → auto-regen handles it
+    if (ps.generatedAtISO === todayISO()) return;                 // fresh plan needs no adjusting
+    if (d.lastAdjustISO === todayISO()) return;                   // once a day
+    _adjusting = true;
+    try {
+      const dd = loadData();
+      const body = {
+        week: _planWeeks.A.map((day, idx) => ({ idx, ...day })),
+        todayIdx: todayIdx(),
+        settings: dd.settings,
+        focusDetail: (dd.settings && dd.settings.focus) ? (FOCUS_DETAILS[dd.settings.focus] || null) : null,
+        raceTarget: dd.raceTarget || null,
+        raceWeeksAway: (dd.raceTarget && dd.raceTarget.date) ? weeksUntil(dd.raceTarget.date) : null,
+        activitySummary: buildActivitySummary(getMergedActivities(), _lastReadiness),
+        upcomingEvents: upcomingEventsForPlan(7),
+      };
+      const res = await authedFetch(SUPABASE_URL + '/functions/v1/adjust-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error('adjust failed: ' + res.status);
+      const json = await res.json();
+      // Mark the attempt regardless of outcome so a flappy response can't
+      // burn multiple Haiku calls in one day.
+      const save = loadData(); save.lastAdjustISO = todayISO(); saveData(save);
+      if (json && !json.no_change && Array.isArray(json.adjustments) && json.adjustments.length) {
+        let applied = 0;
+        json.adjustments.forEach(a => {
+          const idx = a.idx;
+          if (idx == null || idx < todayIdx() || idx > 6 || !a.day) return;
+          const cur = _planWeeks.A[idx];
+          if (cur && (cur.pinned || cur.completed)) return; // protected
+          _planWeeks.A[idx] = a.day;
+          applied++;
+        });
+        if (applied) {
+          savePlanState();
+          renderPlanView();
+          renderTodayHero();
+          initWeekStrip();
+          if (json.reason) setPlanStatus('Adjusted: ' + json.reason);
+        }
+      }
+    } catch (e) {
+      console.warn('daily adjust failed:', e);
+    } finally {
+      _adjusting = false;
+    }
+  }
+
   // Compact 2-week running summary for the model — small, no raw dumps.
   function buildActivitySummary(activities, readiness) {
     const since = Date.now() - 14 * 86400000;
@@ -3125,6 +3076,8 @@
       const race = (d.raceTarget && d.raceTarget.date) ? d.raceTarget : null;
       const profile = {
         settings: d.settings,
+        // The focus chip promises a concrete behavior — send it, not just the slug
+        focusDetail: (d.settings && d.settings.focus) ? (FOCUS_DETAILS[d.settings.focus] || null) : null,
         raceTarget: d.raceTarget || null,
         raceWeeksAway: race ? weeksUntil(race.date) : null,
       };
@@ -3139,10 +3092,12 @@
       const json = await res.json();
       if (!res.ok || !json.plan || !json.plan.current_week) throw new Error(json.error || 'Generation failed');
       const newA = json.plan.current_week.days || [];
-      // Preserve Frank's pinned days only when we're rebuilding the same week
-      // (a rollover is a genuinely new week, so no pins carry over).
+      // Preserve Frank's pinned AND completed days when rebuilding the same week
+      // (a rollover is a genuinely new week, so neither carries over).
       if (sameWeek && _planWeeks.A) {
-        for (let i = 0; i < 7 && i < newA.length; i++) { if (_planWeeks.A[i] && _planWeeks.A[i].pinned) newA[i] = _planWeeks.A[i]; }
+        for (let i = 0; i < 7 && i < newA.length; i++) {
+          if (_planWeeks.A[i] && (_planWeeks.A[i].pinned || _planWeeks.A[i].completed)) newA[i] = _planWeeks.A[i];
+        }
       }
       _planWeeks = { A: newA, B: (json.plan.next_week && json.plan.next_week.days) || null };
       _viewWeek = 'A';
@@ -3208,11 +3163,11 @@
     const d = new Date(now);
     d.setDate(now.getDate() + mondayOff + dayIdx);
     const isToday = _viewWeek === 'A' && d.toDateString() === now.toDateString();
-    document.getElementById('sheet-session-inner').innerHTML = buildSessionSheetHTML(s, isToday);
+    document.getElementById('sheet-session-inner').innerHTML = buildSessionSheetHTML(s, isToday, _viewWeek, dayIdx);
     openSheet('sheet-session');
   }
 
-  function buildSessionSheetHTML(s, isToday) {
+  function buildSessionSheetHTML(s, isToday, weekKey, dayIdx) {
     let contentHTML = '';
     if (s.type === 'run') {
       const blocksHTML = s.blocks.map(b => `
@@ -3253,6 +3208,19 @@
       </button>
     ` : `<p style="text-align:center;font-size:12px;color:var(--text-tertiary);margin:0">Not today's session</p>`;
 
+    // Skip / unpin actions — only for sessions that came from a plan day
+    let actionsHTML = '';
+    if (weekKey && dayIdx != null && dayIdx >= 0) {
+      const unpinBtn = s.pinned
+        ? `<button class="btn btn-secondary" style="flex:1" onclick="unpinSession('${weekKey}', ${dayIdx})">Unpin 📌</button>`
+        : '';
+      actionsHTML = `
+        <div style="display:flex;gap:var(--sp-sm);margin-top:var(--sp-sm)">
+          ${unpinBtn}
+          <button class="btn btn-secondary" style="flex:1;color:#c45c5c" onclick="skipSession('${weekKey}', ${dayIdx})">Skip — make it a rest day</button>
+        </div>`;
+    }
+
     return `
       <div style="margin-bottom:var(--sp-md)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-sm)">
@@ -3264,7 +3232,47 @@
       </div>
       ${contentHTML}
       ${ctaHTML}
+      ${actionsHTML}
     `;
+  }
+
+  // Skip a plan day → becomes a pinned Rest day (pinned so neither the weekly
+  // regeneration nor the daily adjust pass resurrects the session).
+  function skipSession(weekKey, dayIdx) {
+    const week = _planWeeks[weekKey];
+    if (!week || !week[dayIdx]) return;
+    week[dayIdx] = { day: week[dayIdx].day, type: 'rest', name: 'Rest', sub: 'Skipped', dur: '', meta: '',
+      title: 'Rest', desc: 'You skipped this session.', blocks: [], movements: [], pinned: true };
+    savePlanState();
+    renderPlanView();
+    renderTodayHero();
+    initWeekStrip();
+    closeSheet('sheet-session');
+  }
+
+  // Mark today's live plan day completed after finishing a guided session of
+  // the matching type. Completed days survive same-week regeneration and are
+  // off-limits to the daily adjust pass.
+  function markTodayCompleted(type) {
+    if (!_planWeeks.A) return;
+    const day = _planWeeks.A[todayIdx()];
+    if (!day || day.type !== type) return;
+    day.completed = true;
+    savePlanState();
+    renderPlanView();
+    renderTodayHero();
+    initWeekStrip();
+  }
+
+  function unpinSession(weekKey, dayIdx) {
+    const week = _planWeeks[weekKey];
+    if (!week || !week[dayIdx]) return;
+    week[dayIdx].pinned = false;
+    savePlanState();
+    renderPlanView();
+    renderTodayHero();
+    initWeekStrip();
+    closeSheet('sheet-session');
   }
 
   // ─── PROGRESS SPARKLINES ────────────────────────
@@ -3536,7 +3544,7 @@
   }
 
   function defaultData() {
-    return { logs: [], plan: {}, raceTarget: null, settings: {
+    return { logs: [], raceTarget: null, settings: {
       units: 'mi', theme: 'dark',
       approach: 'build',
       strengthFocus: 'full',
@@ -3928,7 +3936,67 @@
     const merged = getMergedActivities();
     renderRecentActivities(merged);
     renderDetectedActivities(merged);
+    renderWeekSummary(merged);
+    renderPersonalBests(merged);
     initProgress(merged, _garminConnected || getLocalLogs().length > 0);
+  }
+
+  // ─── WEEK SUMMARY (Today tab) — this week's real totals ─────
+  function renderWeekSummary(activities) {
+    const now = new Date();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + (now.getDay() === 0 ? -6 : 1 - now.getDay()));
+    monday.setHours(0, 0, 0, 0);
+
+    let runKm = 0, sessions = 0, minutes = 0;
+    (activities || []).forEach(a => {
+      const d = a.startTimeLocal ? new Date(a.startTimeLocal.replace(' ', 'T')) : null;
+      if (!d || isNaN(d) || d < monday || d > now) return;
+      const t = a.activityType?.typeKey || '';
+      if (t === 'travel') return;
+      sessions++;
+      if (a.duration) minutes += a.duration / 60;
+      if (t.includes('running') && a.distance) runKm += a.distance / 1000;
+    });
+
+    const distEl = document.getElementById('ws-dist');
+    if (distEl) distEl.dataset.km = runKm.toFixed(1);
+    const sesEl = document.getElementById('ws-sessions');
+    if (sesEl) sesEl.textContent = sessions;
+    const loadEl = document.getElementById('ws-load');
+    if (loadEl) loadEl.textContent = Math.round(minutes);
+    const actEl = document.getElementById('ws-active');
+    if (actEl) actEl.textContent = (minutes / 60).toFixed(1);
+    applyUnits();
+  }
+
+  // ─── PERSONAL BESTS (Progress tab) — fastest run per distance band ─────
+  const PB_BANDS = [
+    { label: '5K',       minKm: 4.7,  maxKm: 7 },
+    { label: '10K',      minKm: 9.5,  maxKm: 14 },
+    { label: 'Half',     minKm: 20,   maxKm: 25 },
+    { label: 'Marathon', minKm: 40,   maxKm: 46 },
+  ];
+  function renderPersonalBests(activities) {
+    const grid = document.getElementById('pb-grid');
+    if (!grid) return;
+    const runs = (activities || []).filter(a =>
+      (a.activityType?.typeKey || '').includes('running') && a.distance && a.duration);
+
+    const cells = PB_BANDS.map(band => {
+      let best = null; // fastest pace sec/km within the band
+      runs.forEach(a => {
+        const km = a.distance / 1000;
+        if (km < band.minKm || km > band.maxKm) return;
+        const pace = a.duration / km;
+        if (!best || pace < best.pace) best = { pace, total: a.duration };
+      });
+      if (!best) return `<div class="pb-item"><div class="pb-dist">${band.label}</div><div class="pb-time">—</div><div class="pb-sub">No runs yet</div></div>`;
+      const m = Math.floor(best.total / 60), s = String(Math.round(best.total % 60)).padStart(2, '0');
+      return `<div class="pb-item"><div class="pb-dist">${band.label}</div><div class="pb-time">${m}:${s}</div><div class="pb-sub"><span data-pace-sec="${Math.round(best.pace)}">--</span></div></div>`;
+    });
+    grid.innerHTML = cells.join('');
+    applyUnits();
   }
 
   function addLog(entry) {
@@ -4192,6 +4260,7 @@
       refreshActivityViews();
       updateRegenButton();
       maybeAutoGenerate();   // seamless: first plan, or a fresh one on a new week
+      maybeDailyAdjust();    // cheap daily pass — readiness/load/settings changes
     } catch (e) {
       console.warn('Garmin data fetch failed:', e);
       setGarminBadges('Sync issue', false);
@@ -4254,7 +4323,7 @@
       }
     }
 
-    const nameEl = document.querySelector('#panel-run div[style*="font-size:22px"]');
+    const nameEl = document.getElementById('run-title');
     const name = nameEl ? nameEl.textContent.trim() : 'Run Session';
 
     return { name, sport: 'running', steps };
@@ -4268,10 +4337,12 @@
     setLabel('Pushing to Garmin…');
     try {
       const workout = buildRunWorkoutFromPanel();
+      // Schedule on the day the plan actually has this run (set by renderRunPanel)
+      const dateISO = document.getElementById('panel-run')?.dataset.dateISO || localISO(new Date());
       const res = await authedFetch(SUPABASE_URL + '/functions/v1/garmin-push-workout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workout, date: localISO(new Date()) })
+        body: JSON.stringify({ workout, date: dateISO })
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Push failed');
@@ -4290,10 +4361,8 @@
 
     // Units
     const mi = (s.units || 'mi') === 'mi';
-    const unitsEl = document.getElementById('pref-units');
-    const paceEl  = document.getElementById('pref-pace');
-    if (unitsEl) unitsEl.textContent = mi ? 'mi ›' : 'km ›';
-    if (paceEl)  paceEl.textContent  = mi ? 'min/mi' : 'min/km';
+    const paceEl = document.getElementById('pref-pace');
+    if (paceEl) paceEl.textContent = mi ? 'min/mi' : 'min/km';
 
     // Theme
     const dark = (s.theme || 'dark') === 'dark';
@@ -4301,13 +4370,6 @@
     document.querySelector('meta[name="theme-color"]').content = dark ? '#19191c' : '#f5f3ef';
     const themeToggle = document.getElementById('toggle-theme');
     if (themeToggle) themeToggle.checked = dark;
-  }
-
-  function toggleUnits() {
-    const d = loadData();
-    d.settings.units = (d.settings.units || 'mi') === 'mi' ? 'km' : 'mi';
-    saveData(d);
-    applySettings();
   }
 
   function toggleTheme(isDark) {
@@ -4506,6 +4568,7 @@
       document.querySelectorAll('.injury-chip').forEach(c => c.classList.remove('sel'));
     }
     saveData(data);
+    if (_currentWorkout !== null) renderWorkoutOverview(); // exclusions apply immediately
   }
   function selectInjury(el) {
     el.classList.toggle('sel');
@@ -4514,6 +4577,7 @@
     data.settings = data.settings || {};
     data.settings.injuryParts = parts;
     saveData(data);
+    if (_currentWorkout !== null) renderWorkoutOverview(); // exclusions apply immediately
   }
   function initInjury() {
     const data = loadData();
@@ -4908,6 +4972,31 @@
       estMin: 5,
       parts: WARMUP.map((m, i) => ({ label: `${i + 1} / ${WARMUP.length}`, sets: 1, rest: 0, superset: false, moves: [m] })),
     };
+  }
+
+  // Guided mobility session from the MOBILITY catalog — same overlay flow as
+  // the warm-up, so finishing it auto-logs to the unified history.
+  function generateMobilitySession() {
+    const moves = MOBILITY.map(m => {
+      const secMatch = (m.rx || '').match(/(\d+)\s*sec/);
+      return Object.assign({}, m, {
+        type: 'time',
+        dur: secMatch ? parseInt(secMatch[1], 10) : 40,
+        sides: /each (side|leg)/.test(m.rx || ''),
+      });
+    });
+    return {
+      name: 'Mobility & Recovery',
+      sessionType: 'mobility',
+      focus: 'Hip flexors · IT band · thoracic',
+      equipment: [],
+      estMin: 25,
+      parts: moves.map((m, i) => ({ label: `${i + 1} / ${moves.length}`, sets: 1, rest: 0, superset: false, moves: [m] })),
+    };
+  }
+
+  function startMobility() {
+    _beginSession(generateMobilitySession(), true);
   }
 
   // ═══════════════════════════════════════════════
@@ -5415,11 +5504,17 @@
     clearInterval(SES.countdownInterval);
     if (SES.wo.sessionType === 'A' || SES.wo.sessionType === 'B') {
       localStorage.setItem('tbf-last-strength', SES.wo.sessionType);
-      // Completed guided strength session → record it in the unified history.
+      // Completed guided strength session → record it in the unified history
+      // and mark today's plan day done (protected from regeneration/adjustment).
       if (completed) {
         const durationMin = Math.max(1, Math.round((Date.now() - SES.startTime) / 60000));
         addLog({ source: 'inapp', category: 'strength', subtype: null, startISO: todayISO(), endISO: null, durationMin, distanceKm: null, effort: null, note: '', label: SES.wo.name || 'Strength Session' });
+        markTodayCompleted('strength');
       }
+    } else if (SES.wo.sessionType === 'mobility' && completed) {
+      const durationMin = Math.max(1, Math.round((Date.now() - SES.startTime) / 60000));
+      addLog({ source: 'inapp', category: 'mobility', subtype: null, startISO: todayISO(), endISO: null, durationMin, distanceKm: null, effort: null, note: '', label: SES.wo.name || 'Mobility Session' });
+      markTodayCompleted('mobility');
     }
     SES = null;
     document.getElementById('session-overlay').classList.remove('active');
@@ -5466,8 +5561,15 @@
   // Bump APP_VERSION (keep in step with sw.js CACHE_NAME) and add a new entry
   // whenever a release ships something worth calling out. Shown once per
   // version, the first time Frank opens the app after an update.
-  const APP_VERSION = 'v11';
+  const APP_VERSION = 'v12';
   const WHATS_NEW = {
+    v12: [
+      { emoji: '🏃', text: '<b>The Train tab now shows your actual planned run</b> — and pushing to Garmin sends that session, on the right day.' },
+      { emoji: '📊', text: '<b>Week Summary and Personal Bests are live</b> — real numbers from your Garmin history and logged sessions.' },
+      { emoji: '⏭️', text: '<b>Skip or unpin any planned session</b> from its detail sheet. Finished sessions get a ✓ and are protected from plan changes.' },
+      { emoji: '🧘', text: '<b>Mobility is now a guided session</b> — timed holds, and it logs to your history when you finish.' },
+      { emoji: '🤖', text: '<b>Daily fine-tuning</b> — the plan can ease your next day or two based on readiness, recent load, and setting changes (like marking an injury), without rebuilding the whole week.' },
+    ],
     v11: [
       { emoji: '↩️', text: '<b>Back button now behaves</b> — it closes whatever\'s open instead of quitting the app. From the home tab, press back twice to actually exit.' },
       { emoji: '👇', text: '<b>Swipe down to close</b> any pop-up sheet (movement details, session info, Garmin, race target).' },
@@ -5493,7 +5595,11 @@
     applySettings();
     initDate();
     initPlanState();                    // load saved 2-week plan (with rollover) → sets _planWeeks
-    if (!_planWeeks.A) initPlanDays();    // otherwise render the built-in demo week
+    if (!_planWeeks.A) {
+      renderPlanView();                 // honest empty week before the first generation
+      setPlanStatus('Your first week builds automatically once Garmin connects.');
+    }
+    renderTodayHero();                  // hero + Train-tab run panel always mirror the live week
     initWeekStrip();                     // dots reflect the live week
     document.getElementById('next-week')?.addEventListener('click', () => setViewWeek('B'));
     document.getElementById('prev-week')?.addEventListener('click', () => setViewWeek('A'));
