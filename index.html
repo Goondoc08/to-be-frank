@@ -424,6 +424,7 @@
     .wday .wd-dot.tennis   { background: var(--c-tennis); }
     .wday .wd-dot.boulder  { background: var(--c-boulder); }
     .wday .wd-dot.done     { background: var(--text-tertiary); opacity: 0.4; }
+    .wday .wd-dot.stacked  { box-shadow: 0 0 0 2px var(--bg-app), 0 0 0 3.5px var(--text-secondary); }
 
     /* =============================================
        SESSION HERO CARD
@@ -1668,8 +1669,14 @@
         <div class="session-tab mobility-tab" onclick="switchTrainTab('mobility', this)">Mobility</div>
       </div>
 
-      <!-- ── RUN PANEL (rendered from the live plan by renderRunPanel) ── -->
+      <!-- ── RUN PANEL (purely ad-hoc — pick any run type on demand) ── -->
       <div class="train-panel active" id="panel-run">
+        <div class="strength-session-tabs" id="run-type-tabs">
+          <div class="str-tab active" data-run-type="easy" onclick="selectRunType('easy',this)">Easy</div>
+          <div class="str-tab" data-run-type="tempo" onclick="selectRunType('tempo',this)">Tempo</div>
+          <div class="str-tab" data-run-type="long" onclick="selectRunType('long',this)">Long</div>
+          <div class="str-tab" data-run-type="interval" onclick="selectRunType('interval',this)">Interval</div>
+        </div>
         <div style="margin-bottom:var(--sp-md)">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-sm)">
             <span class="badge badge-run" id="run-badge">Run</span>
@@ -1677,12 +1684,9 @@
           </div>
           <div style="font-size:22px;font-weight:700;letter-spacing:-0.4px;margin-bottom:5px" id="run-title">Run</div>
           <div style="font-size:13px;color:var(--text-secondary);line-height:1.5" id="run-desc"></div>
-          <div style="font-size:11px;color:var(--text-tertiary);margin-top:6px" id="run-for-day"></div>
         </div>
         <div class="label" style="margin-bottom:var(--sp-sm)">Session Structure</div>
-        <div class="card card-p" style="margin-bottom:var(--sp-md)" id="run-blocks">
-          <div style="padding:14px 0;text-align:center;font-size:12px;color:var(--text-tertiary)">Your plan's next run appears here once it's generated</div>
-        </div>
+        <div class="card card-p" style="margin-bottom:var(--sp-md)" id="run-blocks"></div>
         <button class="btn btn-secondary btn-full" style="margin-bottom:var(--sp-sm)" onclick="startWarmup()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
           Warm Up First
@@ -1691,6 +1695,7 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
           <span class="gp-label">Push to Garmin &amp; Start</span>
         </button>
+        <button class="btn btn-secondary btn-full" style="margin-bottom:var(--sp-sm)" onclick="addOnDemandRunToToday()">Add to Today</button>
         <button class="btn btn-secondary btn-full" onclick="openLogScreen({returnView:'train'})">Log Manually Instead</button>
       </div>
 
@@ -1726,6 +1731,7 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
           Start Session
         </button>
+        <button class="btn btn-secondary btn-full" onclick="addMobilityToToday()">Add to Today</button>
       </div>
 
     </div><!-- /view-train -->
@@ -1959,6 +1965,19 @@
         </div>
       </div>
 
+      <!-- Movements -->
+      <div class="settings-section">
+        <div class="label" style="margin-bottom:var(--sp-sm)">Movements</div>
+        <div class="card card-p">
+          <div class="settings-row" onclick="openMovementsSheet()" style="border-bottom:none">
+            <div class="sr-info">
+              <div class="sr-title">Movement Library</div>
+              <div class="sr-sub">Preview movements, exclude ones you don't want</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Preferences -->
       <div class="settings-section">
         <div class="label" style="margin-bottom:var(--sp-sm)">Preferences</div>
@@ -2145,7 +2164,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polygon points="5,3 19,12 5,21 5,3"/>
       </svg>
-      <span>Train</span>
+      <span>On Demand</span>
     </div>
     <div class="nav-item" data-view="progress" onclick="showView('progress')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2307,6 +2326,16 @@
   <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
     <div id="mov-detail-content"></div>
+  </div>
+</div>
+
+<!-- Movement library / exclusions sheet -->
+<div class="overlay" id="sheet-movements" onclick="closeSheet('sheet-movements')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Movements</div>
+    <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:var(--sp-md)">Tap a movement to preview it. Exclude anything you'd rather never see generated.</div>
+    <div id="movements-list" style="max-height:60vh;overflow-y:auto"></div>
   </div>
 </div>
 
@@ -2547,8 +2576,12 @@
     const mondayOff = dow === 0 ? -6 : 1 - dow;
 
     // Session-type dots from the live plan week (empty until one exists).
+    // Colored by the day's first real session; stacked days get a '+'.
     const actTypes = _planWeeks.A
-      ? _planWeeks.A.map(dd => (dd && ['run','strength','mobility'].includes(dd.type)) ? dd.type : null)
+      ? _planWeeks.A.map(dd => {
+          const real = (dd?.sessions || []).filter(s => REAL_TYPES.includes(s.type));
+          return real.length ? { type: real[0].type, stacked: real.length > 1 } : null;
+        })
       : [null, null, null, null, null, null, null];
     while (actTypes.length < 7) actTypes.push(null);
 
@@ -2562,7 +2595,7 @@
       const el = document.createElement('div');
       el.className = 'wday' + (isToday ? ' today' : '');
 
-      const dotClass = act ? (isPast ? 'done' : act) : '';
+      const dotClass = (act ? (isPast ? 'done' : act.type) : '') + (act && act.stacked ? ' stacked' : '');
       el.innerHTML = `
         <div class="wd-name">${lbl}</div>
         <div class="wd-num">${d.getDate()}</div>
@@ -2602,21 +2635,50 @@
     return localISO(d);
   }
 
-  // Maps one week's day objects to the app's PLAN_DATA shape (7 entries).
+  // A day can now hold multiple sessions (stacked). _planWeeks stores days as
+  // { day?: <label>, sessions: [session, ...] } — empty array = rest day.
+  // Each session keeps the flat shape the AI backend has always returned
+  // (type/name/sub/dur/meta/title/desc/blocks|movements/pinned/completed),
+  // plus a lazily-materialized `wo` for strength/mobility (see
+  // materializeSessionWorkout). A session with type:'rest' is a bookkeeping
+  // marker only (from skipSession) — never rendered as a card, but its
+  // `pinned` flag still protects the day from AI overwrite.
+  const REAL_TYPES = ['run', 'strength', 'mobility'];
+
+  // Wraps a flat, single-session day object (the shape the AI backend
+  // returns) into the client's { sessions: [] } array shape.
+  function normalizeDay(rawDay) {
+    const wrapper = { sessions: [] };
+    if (rawDay && rawDay.day !== undefined) wrapper.day = rawDay.day;
+    if (rawDay && REAL_TYPES.includes(rawDay.type)) {
+      const session = Object.assign({}, rawDay);
+      delete session.day;
+      session.pinned = !!session.pinned;
+      session.completed = !!session.completed;
+      wrapper.sessions.push(session);
+    }
+    return wrapper;
+  }
+
+  // A day is protected from AI overwrite if it has any pinned/completed
+  // session (includes skip's rest marker), or more than one session — a
+  // stack is always the result of a manual action, never the AI's.
+  function dayIsProtected(day) {
+    if (!day || !day.sessions || !day.sessions.length) return false;
+    if (day.sessions.length > 1) return true;
+    return day.sessions.some(s => s.pinned || s.completed);
+  }
+
+  // Maps one week's day objects to the app's PLAN_DATA shape (7 entries),
+  // adding render-only display fields on top of the stored session data.
   function mapWeekToData(days) {
     const list = (days || []).slice(0, 7);
-    while (list.length < 7) list.push({ type: 'rest' });
-    return list.map(d => {
-      if (!d || !['run', 'strength', 'mobility'].includes(d.type)) return { sessions: [] };
-      const s = {
-        name: d.name, sub: d.sub, type: d.type, dur: d.dur,
-        badge: d.name, badgeClass: 'badge-' + d.type, meta: d.meta, title: d.title, desc: d.desc,
-        pinned: !!d.pinned, completed: !!d.completed,
-      };
-      if (d.type === 'run') s.blocks = d.blocks || [];
-      else s.movements = d.movements || [];
-      return { sessions: [s] };
-    });
+    while (list.length < 7) list.push({ sessions: [] });
+    return list.map(day => ({
+      sessions: (day?.sessions || [])
+        .filter(s => REAL_TYPES.includes(s.type))
+        .map(s => Object.assign({}, s, { badge: s.name, badgeClass: 'badge-' + s.type })),
+    }));
   }
 
   function initPlanDays() {
@@ -2653,8 +2715,8 @@
           </div>
           <div class="pd-rest">Rest</div>`;
       } else {
-        const sessHTML = data.sessions.map(s => `
-          <div class="plan-session-card" onclick="openPlanSheet(${i})">
+        const sessHTML = data.sessions.map((s, si) => `
+          <div class="plan-session-card" data-session-idx="${si}" onclick="openPlanSheet(${i}, ${si})">
             <div class="psc-dot" style="background:${typeColor[s.type] || 'var(--text-tertiary)'}"></div>
             <div class="psc-info">
               <div class="psc-name">${s.name}${s.completed ? ' <span class="psc-pin" title="Completed" style="color:var(--accent)">✓</span>' : ''}${s.pinned ? ' <span class="psc-pin" title="Pinned — the plan will not move this">📌</span>' : ''}</div>
@@ -2692,15 +2754,25 @@
   }
 
   // ─── DRAG-TO-MOVE (editable calendar) ─────
-  // Swaps two days in the viewed week and pins both so the AI won't move them.
-  function moveSession(from, to) {
+  // Moves one session from day `from` to day `to`. If the target day already
+  // has a real session, the dragged one stacks alongside it (merge) instead
+  // of replacing it. Either way the moved session is pinned so the AI won't
+  // touch it. The vacated source day is left open for the AI to use again.
+  function moveSession(fromIdx, sessionIdx, toIdx) {
     const week = _planWeeks[_viewWeek];
-    if (!week || from === to || from < 0 || to < 0 || from > 6 || to > 6) return;
-    const tmp = week[from]; week[from] = week[to]; week[to] = tmp;
-    [from, to].forEach(idx => {
-      const dd = week[idx];
-      if (dd && ['run', 'strength', 'mobility'].includes(dd.type)) dd.pinned = true;
-    });
+    if (!week || fromIdx === toIdx || fromIdx < 0 || toIdx < 0 || fromIdx > 6 || toIdx > 6) return;
+    const fromDay = week[fromIdx];
+    if (!fromDay || !fromDay.sessions || !fromDay.sessions[sessionIdx]) return;
+    const [session] = fromDay.sessions.splice(sessionIdx, 1);
+    session.pinned = true;
+
+    if (!week[toIdx]) week[toIdx] = { sessions: [] };
+    const toDay = week[toIdx];
+    if (!toDay.sessions) toDay.sessions = [];
+    const targetHasContent = toDay.sessions.some(s => REAL_TYPES.includes(s.type));
+    if (targetHasContent) toDay.sessions.push(session);
+    else toDay.sessions = [session];
+
     savePlanState();
     renderPlanView();
     renderTodayHero();
@@ -2727,8 +2799,9 @@
       if (st.card) st.card.classList.remove('dragging-src');
       container.querySelectorAll('.plan-day.drop-target').forEach(r => r.classList.remove('drop-target'));
       const from = st.fromIdx;
+      const sessionIdx = st.sessionIdx;
       st = null;
-      if (commitTo != null && commitTo >= 0 && commitTo !== from) moveSession(from, commitTo);
+      if (commitTo != null && commitTo >= 0 && commitTo !== from) moveSession(from, sessionIdx, commitTo);
     };
 
     container.addEventListener('pointerdown', (e) => {
@@ -2737,7 +2810,8 @@
       const card = grip.closest('.plan-session-card');
       const row = grip.closest('.plan-day');
       const fromIdx = row ? parseInt(row.dataset.dayIdx, 10) : -1;
-      if (!card || fromIdx < 0) return;
+      const sessionIdx = card ? parseInt(card.dataset.sessionIdx, 10) : -1;
+      if (!card || fromIdx < 0 || sessionIdx < 0) return;
       e.preventDefault();
       const rect = card.getBoundingClientRect();
       const clone = card.cloneNode(true);
@@ -2747,7 +2821,7 @@
       clone.style.top = rect.top + 'px';
       document.body.appendChild(clone);
       card.classList.add('dragging-src');
-      st = { card, clone, fromIdx, offX: e.clientX - rect.left, offY: e.clientY - rect.top };
+      st = { card, clone, fromIdx, sessionIdx, offX: e.clientX - rect.left, offY: e.clientY - rect.top };
       try { grip.setPointerCapture(e.pointerId); } catch (_) {}
     });
 
@@ -2771,12 +2845,15 @@
   }
 
   // ─── TODAY HERO (live week's session for today) ─────
+  // Shows today's first prescribed session; if the day is stacked, a small
+  // "+N more" chip opens the day sheet with the rest.
   function renderTodayHero() {
-    renderRunPanel(); // the Train tab's run always mirrors the live plan
     const hero = document.getElementById('today-hero');
     if (!hero) return;
-    const day = _planWeeks.A ? _planWeeks.A[todayIdx()] : null;
-    if (!day || !['run', 'strength', 'mobility'].includes(day.type)) {
+    const rawDay = _planWeeks.A ? _planWeeks.A[todayIdx()] : null;
+    const sessions = (rawDay?.sessions || []).filter(s => REAL_TYPES.includes(s.type));
+    const day = sessions[0];
+    if (!day) {
       hero.dataset.type = 'rest';
       hero.innerHTML = `
         <div class="sh-top"><span class="badge">Rest</span></div>
@@ -2785,6 +2862,8 @@
       return;
     }
     const label = day.type === 'run' ? 'Run' : day.type === 'strength' ? 'Strength' : 'Mobility';
+    const moreHTML = sessions.length > 1
+      ? `<button class="btn btn-secondary" onclick="openPlanSheet(${todayIdx()})">+${sessions.length - 1} more today</button>` : '';
     hero.dataset.type = day.type;
     hero.innerHTML = `
       <div class="sh-top">
@@ -2798,64 +2877,64 @@
       <div class="sh-meta"><div class="sh-meta-item"><div class="mv">${day.meta || day.dur}</div><div class="ml">${label}</div></div></div>
       <div class="sh-actions">
         <button class="btn btn-primary" style="flex:1" onclick="openTodaySession()">View Session</button>
+        ${moreHTML}
       </div>`;
   }
 
-  // ─── RUN PANEL (Train tab — always shows the live plan's relevant run) ─────
-  // Today's run if today is a run day, otherwise the next run day this week.
-  // The panel's dataset carries the run's calendar date so Push-to-Garmin
-  // schedules the workout on the right day, not blindly on today.
-  function renderRunPanel() {
-    const blocksEl = document.getElementById('run-blocks');
+  // ─── ON DEMAND RUN PANEL (purely ad-hoc — never mirrors the plan) ─────
+  // Local, free, instant templates — same tradeoff as Strength/Mobility ad-hoc
+  // (no AI call per tap). Pushing sends it to today on Garmin.
+  const RUN_TEMPLATES = {
+    easy: { title: 'Easy Run', dur: '35 min', desc: 'Conversational pace — recovery and aerobic base.',
+      blocks: [
+        { icon: '🏃', name: 'Warm-up', sub: 'Easy jog, build into pace', dur: '8 min' },
+        { icon: '🏃', name: 'Easy Run', sub: 'Conversational, nose-breathing pace', dur: '20 min' },
+        { icon: '🧊', name: 'Cool-down', sub: 'Easy jog, then walk', dur: '7 min' },
+      ] },
+    tempo: { title: 'Tempo Run', dur: '40 min', desc: 'Comfortably hard, sustained effort at threshold.',
+      blocks: [
+        { icon: '🏃', name: 'Warm-up', sub: 'Easy jog', dur: '10 min' },
+        { icon: '🔥', name: 'Tempo', sub: 'Comfortably hard, steady effort', dur: '20 min' },
+        { icon: '🧊', name: 'Cool-down', sub: 'Easy jog', dur: '10 min' },
+      ] },
+    long: { title: 'Long Run', dur: '70 min', desc: 'Time on feet — easy, steady aerobic effort.',
+      blocks: [
+        { icon: '🏃', name: 'Warm-up', sub: 'Easy jog', dur: '10 min' },
+        { icon: '🏃', name: 'Long Steady', sub: 'Easy, conversational pace throughout', dur: '50 min' },
+        { icon: '🧊', name: 'Cool-down', sub: 'Easy jog, then walk', dur: '10 min' },
+      ] },
+    interval: { title: 'Interval Run', dur: '35 min', desc: 'Short, hard efforts with full recovery.',
+      blocks: [
+        { icon: '🏃', name: 'Warm-up', sub: 'Easy jog + strides', dur: '10 min' },
+        { icon: '×6', name: 'Interval', sub: '400m hard effort', dur: '90 sec' },
+        { icon: 'REC', name: 'Recovery', sub: 'Easy jog', dur: '90 sec' },
+        { icon: '🧊', name: 'Cool-down', sub: 'Easy jog', dur: '10 min' },
+      ] },
+  };
+  let _currentRunType = 'easy';
+
+  function selectRunType(type, el) {
+    _currentRunType = type;
+    document.querySelectorAll('#run-type-tabs .str-tab').forEach(t => t.classList.remove('active'));
+    if (el) el.classList.add('active');
+    renderOnDemandRun();
+  }
+
+  function renderOnDemandRun() {
+    const tpl = RUN_TEMPLATES[_currentRunType];
     const panel = document.getElementById('panel-run');
-    if (!blocksEl || !panel) return;
-
-    let day = null, dayIdx = -1;
-    if (_planWeeks.A) {
-      const t = todayIdx();
-      if (_planWeeks.A[t] && _planWeeks.A[t].type === 'run') { day = _planWeeks.A[t]; dayIdx = t; }
-      else {
-        for (let i = t + 1; i < 7; i++) {
-          if (_planWeeks.A[i] && _planWeeks.A[i].type === 'run') { day = _planWeeks.A[i]; dayIdx = i; break; }
-        }
-      }
-    }
-
     const badge = document.getElementById('run-badge');
     const meta  = document.getElementById('run-meta');
     const title = document.getElementById('run-title');
     const desc  = document.getElementById('run-desc');
-    const forDay = document.getElementById('run-for-day');
-    const pushBtn = document.getElementById('garmin-push-btn');
-
-    if (!day) {
-      panel.dataset.dateISO = todayISO();
-      if (badge) badge.textContent = 'Run';
-      if (title) title.textContent = 'No run scheduled';
-      if (meta)  meta.textContent = '';
-      if (desc)  desc.textContent = _planWeeks.A
-        ? 'No more runs on this week’s plan. Log one manually if you head out anyway.'
-        : 'Your plan’s runs appear here once the first week is generated.';
-      if (forDay) forDay.textContent = '';
-      blocksEl.innerHTML = '<div style="padding:14px 0;text-align:center;font-size:12px;color:var(--text-tertiary)">Nothing scheduled</div>';
-      if (pushBtn) pushBtn.style.display = 'none';
-      return;
-    }
-
-    const now = new Date();
-    const mondayOff = (now.getDay() === 0 ? -6 : 1 - now.getDay());
-    const d = new Date(now);
-    d.setDate(now.getDate() + mondayOff + dayIdx);
-    panel.dataset.dateISO = localISO(d);
-    const isToday = dayIdx === todayIdx();
-
-    if (badge) badge.textContent = day.name || 'Run';
-    if (meta)  meta.textContent = day.meta || day.dur || '';
-    if (title) title.textContent = day.title || day.name || 'Run';
-    if (desc)  desc.textContent = day.desc || '';
-    if (forDay) forDay.textContent = isToday ? 'Scheduled for today'
-      : 'Scheduled for ' + d.toLocaleDateString(undefined, { weekday: 'long' }) + ' — pushing sends it to that day on Garmin';
-    blocksEl.innerHTML = (day.blocks || []).map(b => `
+    const blocksEl = document.getElementById('run-blocks');
+    if (!panel || !blocksEl) return;
+    panel.dataset.dateISO = todayISO();
+    if (badge) badge.textContent = tpl.title;
+    if (meta)  meta.textContent = tpl.dur;
+    if (title) title.textContent = tpl.title;
+    if (desc)  desc.textContent = tpl.desc;
+    blocksEl.innerHTML = tpl.blocks.map(b => `
       <div class="run-block">
         <div class="rb-icon"${(b.icon === 'REC') ? ' style="font-size:11px"' : ''}>${b.icon}</div>
         <div class="rb-info">
@@ -2863,16 +2942,55 @@
           <div class="rbsb">${b.sub}</div>
         </div>
         <div class="rb-dur">${b.dur}</div>
-      </div>`).join('') || '<div style="padding:14px 0;text-align:center;font-size:12px;color:var(--text-tertiary)">No structure for this session</div>';
-    if (pushBtn) pushBtn.style.display = '';
+      </div>`).join('');
+  }
+
+  // ─── ADD TO TODAY (manual-only stacking from On Demand) ─────
+  // Wraps whatever was just generated into a plan session and stacks it onto
+  // today, merging with anything already there — the same merge behavior as
+  // drag-to-move in Plan. Always manual; the AI never calls this.
+  function addSessionToToday(fields) {
+    if (!_planWeeks.A) _planWeeks.A = Array.from({ length: 7 }, () => ({ sessions: [] }));
+    const idx = todayIdx();
+    if (!_planWeeks.A[idx]) _planWeeks.A[idx] = { sessions: [] };
+    const day = _planWeeks.A[idx];
+    if (!day.sessions) day.sessions = [];
+    const session = Object.assign({}, fields, { pinned: true, completed: false });
+    const hasContent = day.sessions.some(s => REAL_TYPES.includes(s.type));
+    if (hasContent) day.sessions.push(session);
+    else day.sessions = [session];
+    savePlanState();
+    renderPlanView();
+    renderTodayHero();
+    initWeekStrip();
+  }
+
+  function addOnDemandRunToToday() {
+    const tpl = RUN_TEMPLATES[_currentRunType];
+    addSessionToToday({
+      type: 'run', name: tpl.title, sub: tpl.desc, dur: tpl.dur, meta: tpl.dur,
+      title: tpl.title, desc: tpl.desc, blocks: tpl.blocks,
+    });
+  }
+
+  function addStrengthToToday() {
+    const wo = _currentWorkout || generateWorkout(_currentSessionType);
+    addSessionToToday({
+      type: 'strength', name: wo.name, sub: wo.focus, dur: `~${wo.estMin} min`, meta: `~${wo.estMin} min`,
+      title: wo.name, desc: wo.focus, wo,
+    });
+  }
+
+  function addMobilityToToday() {
+    const wo = generateMobilitySession();
+    addSessionToToday({
+      type: 'mobility', name: 'Mobility & Recovery', sub: wo.focus, dur: '25 min', meta: '25 min',
+      title: 'Mobility & Recovery', desc: wo.focus, wo,
+    });
   }
 
   function openTodaySession() {
-    const day = _planWeeks.A ? _planWeeks.A[todayIdx()] : null;
-    if (!day || !['run', 'strength', 'mobility'].includes(day.type)) return;
-    const s = mapWeekToData([day])[0].sessions[0];
-    document.getElementById('sheet-session-inner').innerHTML = buildSessionSheetHTML(s, true, 'A', todayIdx());
-    openSheet('sheet-session');
+    openPlanSheet(todayIdx());
   }
 
   // ─── PERSISTENCE + WEEKLY ROLLOVER ─────
@@ -2895,10 +3013,19 @@
     return ps;
   }
 
+  // One-time migration for state saved before the multi-session data model:
+  // old days were a flat single-session object (`day.type` directly) instead
+  // of `{ sessions: [] }`. Wrap anything old-shaped so Frank's in-progress
+  // week survives the update instead of getting wiped.
+  function migrateWeek(days) {
+    if (!Array.isArray(days)) return days;
+    return days.map(d => (d && !d.sessions) ? normalizeDay(d) : d);
+  }
+
   function initPlanState() {
     const ps = loadPlanStateFromStorage();
     if (!ps) return;
-    _planWeeks = { A: ps.weeks.A || null, B: ps.weeks.B || null };
+    _planWeeks = { A: migrateWeek(ps.weeks.A) || null, B: migrateWeek(ps.weeks.B) || null };
     _viewWeek = 'A';
     renderPlanView();
     renderTodayHero();
@@ -2976,8 +3103,13 @@
     _adjusting = true;
     try {
       const dd = loadData();
+      // Server still speaks the flat single-session-per-day contract — send
+      // it the day's first real session (or a rest marker) per slot.
       const body = {
-        week: _planWeeks.A.map((day, idx) => ({ idx, ...day })),
+        week: _planWeeks.A.map((day, idx) => {
+          const primary = (day?.sessions || []).find(s => REAL_TYPES.includes(s.type));
+          return { idx, ...(primary || { type: 'rest' }) };
+        }),
         todayIdx: todayIdx(),
         settings: dd.settings,
         focusDetail: (dd.settings && dd.settings.focus) ? (FOCUS_DETAILS[dd.settings.focus] || null) : null,
@@ -3002,8 +3134,8 @@
           const idx = a.idx;
           if (idx == null || idx < todayIdx() || idx > 6 || !a.day) return;
           const cur = _planWeeks.A[idx];
-          if (cur && (cur.pinned || cur.completed)) return; // protected
-          _planWeeks.A[idx] = a.day;
+          if (dayIsProtected(cur)) return; // protected
+          _planWeeks.A[idx] = normalizeDay(a.day);
           applied++;
         });
         if (applied) {
@@ -3091,15 +3223,16 @@
       if (res.status === 401 || res.status === 403) { showLogin(); return; }
       const json = await res.json();
       if (!res.ok || !json.plan || !json.plan.current_week) throw new Error(json.error || 'Generation failed');
-      const newA = json.plan.current_week.days || [];
-      // Preserve Frank's pinned AND completed days when rebuilding the same week
-      // (a rollover is a genuinely new week, so neither carries over).
+      const newA = (json.plan.current_week.days || []).map(normalizeDay);
+      const newB = ((json.plan.next_week && json.plan.next_week.days) || []).map(normalizeDay);
+      // Preserve Frank's pinned/completed/stacked days when rebuilding the
+      // same week (a rollover is a genuinely new week, so nothing carries over).
       if (sameWeek && _planWeeks.A) {
         for (let i = 0; i < 7 && i < newA.length; i++) {
-          if (_planWeeks.A[i] && (_planWeeks.A[i].pinned || _planWeeks.A[i].completed)) newA[i] = _planWeeks.A[i];
+          if (dayIsProtected(_planWeeks.A[i])) newA[i] = _planWeeks.A[i];
         }
       }
-      _planWeeks = { A: newA, B: (json.plan.next_week && json.plan.next_week.days) || null };
+      _planWeeks = { A: newA, B: newB.length ? newB : null };
       _viewWeek = 'A';
       savePlanState();
       renderPlanView();
@@ -3154,20 +3287,56 @@
     if (_garminConnected) generatePlan({ silent: true }); // rebuild toward the race
   }
 
-  function openPlanSheet(dayIdx) {
+  // sessionIdx omitted + multiple sessions that day → show the stacked list;
+  // otherwise (or if it's the only session) jump straight to its detail.
+  function openPlanSheet(dayIdx, sessionIdx) {
     const dayData = PLAN_DATA[dayIdx];
     if (!dayData?.sessions.length) return;
-    const s = dayData.sessions[0];
+    if (sessionIdx == null && dayData.sessions.length > 1) {
+      document.getElementById('sheet-session-inner').innerHTML = buildDayListSheetHTML(dayData.sessions, dayIdx);
+      openSheet('sheet-session');
+      return;
+    }
+    const si = sessionIdx || 0;
+    // Materialize strength/mobility against the real stored session (not the
+    // display copy in PLAN_DATA) so the preview shown here is exactly what
+    // Start will hand to the session player — no surprise re-roll.
+    const rawSession = _planWeeks[_viewWeek]?.[dayIdx]?.sessions?.[si];
+    if (rawSession && rawSession.type !== 'run' && !rawSession.wo) {
+      materializeSessionWorkout(rawSession);
+      savePlanState();
+    }
+    const s = rawSession
+      ? Object.assign({}, rawSession, { badge: rawSession.name, badgeClass: 'badge-' + rawSession.type })
+      : dayData.sessions[si];
+    if (!s) return;
     const now = new Date();
     const mondayOff = (now.getDay() === 0 ? -6 : 1 - now.getDay()) + (_viewWeek === 'B' ? 7 : 0);
     const d = new Date(now);
     d.setDate(now.getDate() + mondayOff + dayIdx);
     const isToday = _viewWeek === 'A' && d.toDateString() === now.toDateString();
-    document.getElementById('sheet-session-inner').innerHTML = buildSessionSheetHTML(s, isToday, _viewWeek, dayIdx);
+    document.getElementById('sheet-session-inner').innerHTML = buildSessionSheetHTML(s, isToday, _viewWeek, dayIdx, si);
     openSheet('sheet-session');
   }
 
-  function buildSessionSheetHTML(s, isToday, weekKey, dayIdx) {
+  function buildDayListSheetHTML(sessions, dayIdx) {
+    const typeColor = { run: 'var(--c-run)', strength: 'var(--c-strength)', mobility: 'var(--c-mobility)' };
+    const rows = sessions.map((s, si) => `
+      <div class="plan-session-card" onclick="openPlanSheet(${dayIdx}, ${si})">
+        <div class="psc-dot" style="background:${typeColor[s.type] || 'var(--text-tertiary)'}"></div>
+        <div class="psc-info">
+          <div class="psc-name">${s.name}${s.completed ? ' <span class="psc-pin" title="Completed" style="color:var(--accent)">✓</span>' : ''}${s.pinned ? ' <span class="psc-pin" title="Pinned — the plan will not move this">📌</span>' : ''}</div>
+          <div class="psc-sub">${s.sub}</div>
+        </div>
+        <div class="psc-dur">${s.dur}</div>
+      </div>`).join('');
+    return `
+      <div class="label" style="margin-bottom:var(--sp-sm)">Sessions this day</div>
+      <div class="pd-sessions">${rows}</div>
+    `;
+  }
+
+  function buildSessionSheetHTML(s, isToday, weekKey, dayIdx, sessionIdx) {
     let contentHTML = '';
     if (s.type === 'run') {
       const blocksHTML = s.blocks.map(b => `
@@ -3186,7 +3355,14 @@
       `;
     } else {
       const label = s.type === 'mobility' ? 'Movements — hold each position' : 'Movements';
-      const movsHTML = s.movements.map(m => `
+      // Prefer the materialized wo (real, locked catalog movements) over the
+      // AI's display-only text — once materialized, that's what Start uses.
+      let movs = s.movements || [];
+      if (s.wo && s.wo.parts) {
+        movs = [];
+        s.wo.parts.forEach(part => part.moves.forEach(m => movs.push({ thumb: m.emoji, name: m.name, detail: fmtRx(m, part) })));
+      }
+      const movsHTML = movs.map(m => `
         <div class="movement-item" style="cursor:default">
           <div class="mov-thumb">${m.thumb}</div>
           <div class="mov-info">
@@ -3202,22 +3378,28 @@
     }
 
     const ctaHTML = isToday ? `
-      <button class="btn btn-primary btn-full" onclick="goToSession('${s.type}'); closeSheet('sheet-session')">
+      <button class="btn btn-primary btn-full" id="plan-sheet-cta" onclick="startSessionFromPlan('${weekKey}', ${dayIdx}, ${sessionIdx})">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
-        ${s.type === 'run' ? 'Push to Garmin &amp; Start' : 'Start Session'}
+        <span class="ps-cta-label">${s.type === 'run' ? 'Push to Garmin &amp; Start' : 'Start Session'}</span>
       </button>
     ` : `<p style="text-align:center;font-size:12px;color:var(--text-tertiary);margin:0">Not today's session</p>`;
 
-    // Skip / unpin actions — only for sessions that came from a plan day
+    // Skip / unpin / refresh actions — only for sessions that came from a plan day
     let actionsHTML = '';
     if (weekKey && dayIdx != null && dayIdx >= 0) {
       const unpinBtn = s.pinned
-        ? `<button class="btn btn-secondary" style="flex:1" onclick="unpinSession('${weekKey}', ${dayIdx})">Unpin 📌</button>`
+        ? `<button class="btn btn-secondary" style="flex:1" onclick="unpinSession('${weekKey}', ${dayIdx}, ${sessionIdx})">Unpin 📌</button>`
+        : '';
+      const refreshBtn = s.type !== 'run'
+        ? `<button class="btn btn-secondary" style="flex:1" onclick="refreshSessionWorkoutInPlan('${weekKey}', ${dayIdx}, ${sessionIdx})">Refresh movements ↻</button>`
         : '';
       actionsHTML = `
         <div style="display:flex;gap:var(--sp-sm);margin-top:var(--sp-sm)">
           ${unpinBtn}
-          <button class="btn btn-secondary" style="flex:1;color:#c45c5c" onclick="skipSession('${weekKey}', ${dayIdx})">Skip — make it a rest day</button>
+          ${refreshBtn}
+        </div>
+        <div style="margin-top:var(--sp-sm)">
+          <button class="btn btn-secondary btn-full" style="color:#c45c5c" onclick="skipSession('${weekKey}', ${dayIdx}, ${sessionIdx})">Skip — make it a rest day</button>
         </div>`;
     }
 
@@ -3236,13 +3418,19 @@
     `;
   }
 
-  // Skip a plan day → becomes a pinned Rest day (pinned so neither the weekly
-  // regeneration nor the daily adjust pass resurrects the session).
-  function skipSession(weekKey, dayIdx) {
+  // Skip one session on a day. If it was the day's last real session, leave
+  // a pinned rest marker behind so neither weekly regen nor the daily adjust
+  // pass resurrects it (a day left genuinely empty is fair game for the AI
+  // again — see dayIsProtected).
+  function skipSession(weekKey, dayIdx, sessionIdx) {
     const week = _planWeeks[weekKey];
-    if (!week || !week[dayIdx]) return;
-    week[dayIdx] = { day: week[dayIdx].day, type: 'rest', name: 'Rest', sub: 'Skipped', dur: '', meta: '',
-      title: 'Rest', desc: 'You skipped this session.', blocks: [], movements: [], pinned: true };
+    const day = week?.[dayIdx];
+    if (!day || !day.sessions || !day.sessions[sessionIdx]) return;
+    day.sessions.splice(sessionIdx, 1);
+    if (!day.sessions.some(s => REAL_TYPES.includes(s.type))) {
+      day.sessions = [{ type: 'rest', name: 'Rest', sub: 'Skipped', dur: '', meta: '',
+        title: 'Rest', desc: 'You skipped this session.', pinned: true }];
+    }
     savePlanState();
     renderPlanView();
     renderTodayHero();
@@ -3250,24 +3438,10 @@
     closeSheet('sheet-session');
   }
 
-  // Mark today's live plan day completed after finishing a guided session of
-  // the matching type. Completed days survive same-week regeneration and are
-  // off-limits to the daily adjust pass.
-  function markTodayCompleted(type) {
-    if (!_planWeeks.A) return;
-    const day = _planWeeks.A[todayIdx()];
-    if (!day || day.type !== type) return;
-    day.completed = true;
-    savePlanState();
-    renderPlanView();
-    renderTodayHero();
-    initWeekStrip();
-  }
-
-  function unpinSession(weekKey, dayIdx) {
-    const week = _planWeeks[weekKey];
-    if (!week || !week[dayIdx]) return;
-    week[dayIdx].pinned = false;
+  function unpinSession(weekKey, dayIdx, sessionIdx) {
+    const session = _planWeeks[weekKey]?.[dayIdx]?.sessions?.[sessionIdx];
+    if (!session) return;
+    session.pinned = false;
     savePlanState();
     renderPlanView();
     renderTodayHero();
@@ -3517,12 +3691,7 @@
     el.classList.add('active');
     document.getElementById('panel-' + type).classList.add('active');
     if (type === 'strength') initStrength();
-  }
-
-  function goToSession(type) {
-    const tabEl = document.querySelector(`.session-tab.${type}-tab`);
-    if (tabEl) switchTrainTab(type, tabEl);
-    showView('train', 'forward');
+    else if (type === 'run') renderOnDemandRun();
   }
 
   // ─── MOVEMENT CHECK ─────────────────────────────
@@ -3551,7 +3720,8 @@
       trainDays: ['mon','tue','wed','thu','fri','sat'],
       longRunDay: 'sat',
       injured: false,
-      injuryParts: []
+      injuryParts: [],
+      excludedMoveIds: []
     }};
   }
 
@@ -4281,19 +4451,15 @@
     return m ? parseInt(m[1], 10) * 60 : undefined;
   }
 
-  function buildRunWorkoutFromPanel() {
-    const blockEls = Array.from(document.querySelectorAll('#panel-run .run-block'));
-    const blocks = blockEls.map(el => ({
-      icon: el.querySelector('.rb-icon').textContent.trim(),
-      name: el.querySelector('.rbn').textContent.trim(),
-      sub: el.querySelector('.rbsb').textContent.trim(),
-      dur: el.querySelector('.rb-dur').textContent.trim(),
-    }));
-
+  // Pure: turns a plan/session's structured run blocks into the Garmin
+  // structured-workout shape. Used by every "push to Garmin" entry point
+  // (Plan detail sheet, On Demand's run panel) so none of them need to
+  // scrape rendered DOM to know what they're pushing.
+  function buildRunWorkout(blocks, name) {
     const steps = [];
     for (let i = 0; i < blocks.length; i++) {
       const b = blocks[i];
-      const repeatMatch = b.icon.match(/^×(\d+)$/);
+      const repeatMatch = (b.icon || '').match(/^×(\d+)$/);
       if (repeatMatch) {
         const intervalStep = {
           type: 'interval',
@@ -4322,23 +4488,27 @@
         });
       }
     }
-
-    const nameEl = document.getElementById('run-title');
-    const name = nameEl ? nameEl.textContent.trim() : 'Run Session';
-
-    return { name, sport: 'running', steps };
+    return { name: name || 'Run Session', sport: 'running', steps };
   }
 
-  async function pushRunToGarmin() {
-    const btn = document.getElementById('garmin-push-btn');
-    const label = btn ? btn.querySelector('.gp-label') : null;
-    const setLabel = (t) => { if (label) label.textContent = t; };
+  function buildRunWorkoutFromPanel() {
+    const blockEls = Array.from(document.querySelectorAll('#panel-run .run-block'));
+    const blocks = blockEls.map(el => ({
+      icon: el.querySelector('.rb-icon').textContent.trim(),
+      name: el.querySelector('.rbn').textContent.trim(),
+      sub: el.querySelector('.rbsb').textContent.trim(),
+      dur: el.querySelector('.rb-dur').textContent.trim(),
+    }));
+    const nameEl = document.getElementById('run-title');
+    return buildRunWorkout(blocks, nameEl ? nameEl.textContent.trim() : 'Run Session');
+  }
 
-    setLabel('Pushing to Garmin…');
+  // Pushes a prebuilt Garmin workout for the given date. `setLabel` (optional)
+  // gets progress text for whatever button triggered this.
+  async function pushWorkoutToGarmin(workout, dateISO, setLabel) {
+    const label = setLabel || (() => {});
+    label('Pushing to Garmin…');
     try {
-      const workout = buildRunWorkoutFromPanel();
-      // Schedule on the day the plan actually has this run (set by renderRunPanel)
-      const dateISO = document.getElementById('panel-run')?.dataset.dateISO || localISO(new Date());
       const res = await authedFetch(SUPABASE_URL + '/functions/v1/garmin-push-workout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -4346,12 +4516,21 @@
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Push failed');
-      setLabel('Pushed to Garmin ✓');
+      label('Pushed to Garmin ✓');
     } catch (e) {
       console.warn('Garmin push failed:', e);
-      setLabel('Push failed — starting anyway');
+      label('Push failed — starting anyway');
     }
     requestWakeLock();
+  }
+
+  async function pushRunToGarmin() {
+    const btn = document.getElementById('garmin-push-btn');
+    const labelEl = btn ? btn.querySelector('.gp-label') : null;
+    const workout = buildRunWorkoutFromPanel();
+    // Schedule on the day the plan actually has this run (set by renderRunPanel)
+    const dateISO = document.getElementById('panel-run')?.dataset.dateISO || localISO(new Date());
+    await pushWorkoutToGarmin(workout, dateISO, (t) => { if (labelEl) labelEl.textContent = t; });
   }
 
   // ─── SETTINGS ───────────────────────────────────
@@ -4772,7 +4951,8 @@
   function renderMobilityList() {
     const list = document.getElementById('mobility-list');
     if (!list) return;
-    list.innerHTML = MOBILITY.map(m => `
+    const excluded = (loadData().settings || {}).excludedMoveIds || [];
+    list.innerHTML = MOBILITY.filter(m => !excluded.includes(m.id)).map(m => `
       <div class="movement-item" data-mov-id="${m.id}">
         <div class="mov-thumb" onclick="openMovDetail('${m.id}')">
           <video src="videos/${m.video}" autoplay loop muted playsinline preload="auto"></video>
@@ -4797,11 +4977,12 @@
     const data = loadData();
     const s = data.settings || {};
     const injParts = s.injured ? (s.injuryParts || []) : [];
+    const excluded = s.excludedMoveIds || [];
     const focus = s.strengthFocus || 'full';
 
     function avail(id) {
       const m = MOVEMENTS.find(m => m.id === id);
-      return !!(m && !m.injExclude.some(e => injParts.includes(e)));
+      return !!(m && !excluded.includes(id) && !m.injExclude.some(e => injParts.includes(e)));
     }
     function pickFrom(...ids) {
       const pool = ids.filter(avail);
@@ -4977,7 +5158,8 @@
   // Guided mobility session from the MOBILITY catalog — same overlay flow as
   // the warm-up, so finishing it auto-logs to the unified history.
   function generateMobilitySession() {
-    const moves = MOBILITY.map(m => {
+    const excluded = (loadData().settings || {}).excludedMoveIds || [];
+    const moves = MOBILITY.filter(m => !excluded.includes(m.id)).map(m => {
       const secMatch = (m.rx || '').match(/(\d+)\s*sec/);
       return Object.assign({}, m, {
         type: 'time',
@@ -4997,6 +5179,66 @@
 
   function startMobility() {
     _beginSession(generateMobilitySession(), true);
+  }
+
+  // ─── PLAN SESSION MATERIALIZATION ───────────────
+  // The AI's plan-day strength/mobility "movements" are display-only text —
+  // no catalog id/sets/rest, so they can't drive the live session player.
+  // Instead the client generates a real, concrete `wo` locally (same catalog
+  // logic as On Demand) the first time the session is opened/started, and
+  // caches it on the session so it never silently changes again. The AI's
+  // own title/desc copy is kept for flavor; only the movement set is local.
+  function materializeSessionWorkout(session) {
+    if (session.wo) return session.wo;
+    if (session.type === 'mobility') {
+      session.wo = generateMobilitySession();
+    } else if (session.type === 'strength') {
+      const last = localStorage.getItem('tbf-last-strength') || 'B';
+      const type = last === 'A' ? 'B' : 'A';
+      session.wo = generateWorkout(type);
+      localStorage.setItem('tbf-last-strength', type);
+    }
+    return session.wo;
+  }
+
+  function refreshSessionWorkout(session) {
+    session.wo = null;
+    return materializeSessionWorkout(session);
+  }
+
+  // Manual re-roll for a plan session's movement set, called from the detail
+  // sheet — the only way a Plan session's movements change after the fact.
+  function refreshSessionWorkoutInPlan(weekKey, dayIdx, sessionIdx) {
+    const session = _planWeeks[weekKey]?.[dayIdx]?.sessions?.[sessionIdx];
+    if (!session) return;
+    refreshSessionWorkout(session);
+    savePlanState();
+    if (weekKey === _viewWeek) { renderPlanView(); openPlanSheet(dayIdx, sessionIdx); }
+  }
+
+  // Launches a plan session in place: run pushes to Garmin, strength/mobility
+  // start the in-app session overlay directly with a locked movement set.
+  async function startSessionFromPlan(weekKey, dayIdx, sessionIdx) {
+    const day = _planWeeks[weekKey]?.[dayIdx];
+    const session = day?.sessions?.[sessionIdx];
+    if (!session) return;
+    if (session.type === 'run') {
+      const btn = document.getElementById('plan-sheet-cta');
+      const labelEl = btn ? btn.querySelector('.ps-cta-label') : null;
+      const now = new Date();
+      const mondayOff = (now.getDay() === 0 ? -6 : 1 - now.getDay()) + (weekKey === 'B' ? 7 : 0);
+      const d = new Date(now);
+      d.setDate(now.getDate() + mondayOff + dayIdx);
+      const workout = buildRunWorkout(session.blocks || [], session.title || session.name);
+      await pushWorkoutToGarmin(workout, localISO(d), (t) => { if (labelEl) labelEl.textContent = t; });
+      closeSheet('sheet-session');
+    } else {
+      const wo = materializeSessionWorkout(session);
+      if (!wo) return;
+      savePlanState();
+      closeSheet('sheet-session');
+      _beginSession(wo, session.type === 'mobility', { weekKey, dayIdx, sessionIdx });
+    }
   }
 
   // ═══════════════════════════════════════════════
@@ -5099,6 +5341,10 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="margin-right:6px"><polygon points="5,3 19,12 5,21"/></svg>
         Start Workout
       </button>
+      <div style="display:flex;gap:var(--sp-sm);margin-bottom:var(--sp-sm)">
+        <button class="btn btn-secondary" style="flex:1" onclick="renderWorkoutOverview()">Regenerate ↻</button>
+        <button class="btn btn-secondary" style="flex:1" onclick="addStrengthToToday()">Add to Today</button>
+      </div>
       <button class="btn btn-secondary btn-full" onclick="openLogScreen({returnView:'train'})">Log Manually Instead</button>
     `;
   }
@@ -5125,10 +5371,14 @@
     _beginSession(generateWarmup(), true);
   }
 
-  function _beginSession(wo, autoMode) {
+  // `origin` (optional) identifies the plan session this workout came from —
+  // { weekKey, dayIdx, sessionIdx } — so endSession() can mark that specific
+  // session completed instead of guessing from today's plan by type.
+  function _beginSession(wo, autoMode, origin) {
     requestWakeLock();
     SES = {
       wo,
+      origin: origin || null,
       partIdx: 0, setIdx: 0, movIdx: 0, sideIdx: 0,
       startTime: Date.now(),
       sessionInterval: null,
@@ -5498,6 +5748,21 @@
     renderActiveStep();
   }
 
+  // Marks the specific plan session this workout was launched from (if any)
+  // as completed — protected from AI regeneration/adjustment. Ad-hoc (On
+  // Demand) sessions have no origin and nothing gets marked.
+  function markOriginCompleted(origin) {
+    if (!origin) return;
+    const day = _planWeeks[origin.weekKey]?.[origin.dayIdx];
+    const session = day?.sessions?.[origin.sessionIdx];
+    if (!session) return;
+    session.completed = true;
+    savePlanState();
+    renderPlanView();
+    renderTodayHero();
+    initWeekStrip();
+  }
+
   function endSession(completed) {
     if (!SES) return;
     clearInterval(SES.sessionInterval);
@@ -5505,16 +5770,16 @@
     if (SES.wo.sessionType === 'A' || SES.wo.sessionType === 'B') {
       localStorage.setItem('tbf-last-strength', SES.wo.sessionType);
       // Completed guided strength session → record it in the unified history
-      // and mark today's plan day done (protected from regeneration/adjustment).
+      // and mark its plan session done (protected from regeneration/adjustment).
       if (completed) {
         const durationMin = Math.max(1, Math.round((Date.now() - SES.startTime) / 60000));
         addLog({ source: 'inapp', category: 'strength', subtype: null, startISO: todayISO(), endISO: null, durationMin, distanceKm: null, effort: null, note: '', label: SES.wo.name || 'Strength Session' });
-        markTodayCompleted('strength');
+        markOriginCompleted(SES.origin);
       }
     } else if (SES.wo.sessionType === 'mobility' && completed) {
       const durationMin = Math.max(1, Math.round((Date.now() - SES.startTime) / 60000));
       addLog({ source: 'inapp', category: 'mobility', subtype: null, startISO: todayISO(), endISO: null, durationMin, distanceKm: null, effort: null, note: '', label: SES.wo.name || 'Mobility Session' });
-      markTodayCompleted('mobility');
+      markOriginCompleted(SES.origin);
     }
     SES = null;
     document.getElementById('session-overlay').classList.remove('active');
@@ -5550,12 +5815,57 @@
       <div class="mov-detail-cues">${mov.cues || mov.rx || ''}</div>
       ${lastHtml}
       ${tipsHtml ? `<div class="label" style="margin-bottom:var(--sp-sm)">Tips</div><div class="mov-detail-tips">${tipsHtml}</div>` : ''}
-      <button class="btn btn-secondary btn-full" style="margin-top:var(--sp-md)" onclick="closeMovDetail()">Return to Workout</button>
+      <button class="btn btn-secondary btn-full" style="margin-top:var(--sp-md)" onclick="closeMovDetail()">Close</button>
     `;
     openSheet('sheet-mov-detail');
   }
 
   function closeMovDetail() { closeSheet('sheet-mov-detail'); }
+
+  // ─── MOVEMENT LIBRARY / EXCLUSIONS (Profile) ───────────────
+  // Lets Frank permanently exclude a disliked movement from ever being
+  // generated. Wired into generateWorkout()'s avail() and
+  // generateMobilitySession() — only affects future generation, never
+  // retroactively touches a movement already locked into this week's plan.
+  function openMovementsSheet() {
+    renderMovementsList();
+    openSheet('sheet-movements');
+  }
+
+  function renderMovementsList() {
+    const list = document.getElementById('movements-list');
+    if (!list) return;
+    const excluded = (loadData().settings || {}).excludedMoveIds || [];
+    const row = (m) => `
+      <div class="movement-item">
+        <div class="mov-thumb" onclick="openMovDetail('${m.id}')">
+          ${m.video ? `<video src="videos/${m.video}" autoplay loop muted playsinline preload="auto"></video>` : (m.emoji || '')}
+        </div>
+        <div class="mov-info" onclick="openMovDetail('${m.id}')">
+          <div class="mn">${m.name}</div>
+        </div>
+        <label class="toggle" onclick="event.stopPropagation()">
+          <input type="checkbox" ${excluded.includes(m.id) ? 'checked' : ''} onchange="toggleMovExclude('${m.id}', this.checked)">
+          <div class="toggle-track"></div>
+        </label>
+      </div>`;
+    list.innerHTML = `
+      <div class="label" style="margin:var(--sp-sm) 0">Strength</div>
+      ${MOVEMENTS.map(row).join('')}
+      <div class="label" style="margin:var(--sp-md) 0 var(--sp-sm)">Mobility</div>
+      ${MOBILITY.map(row).join('')}
+    `;
+  }
+
+  function toggleMovExclude(id, excluded) {
+    const d = loadData();
+    if (!d.settings.excludedMoveIds) d.settings.excludedMoveIds = [];
+    const list = d.settings.excludedMoveIds;
+    const at = list.indexOf(id);
+    if (excluded && at === -1) list.push(id);
+    else if (!excluded && at !== -1) list.splice(at, 1);
+    saveData(d);
+  }
 
   // ─── WHAT'S NEW ───────────────────────────────────
   // Bump APP_VERSION (keep in step with sw.js CACHE_NAME) and add a new entry
@@ -5599,7 +5909,7 @@
       renderPlanView();                 // honest empty week before the first generation
       setPlanStatus('Your first week builds automatically once Garmin connects.');
     }
-    renderTodayHero();                  // hero + Train-tab run panel always mirror the live week
+    renderTodayHero();                  // hero mirrors the live week's first session today
     initWeekStrip();                     // dots reflect the live week
     document.getElementById('next-week')?.addEventListener('click', () => setViewWeek('B'));
     document.getElementById('prev-week')?.addEventListener('click', () => setViewWeek('A'));
@@ -5614,6 +5924,7 @@
     initStrengthFocus();
     initStrength();
     initMobility();
+    renderOnDemandRun();
     initInstallPrompt();
     initRace();
     pruneOldLogs();
