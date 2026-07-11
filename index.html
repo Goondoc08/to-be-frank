@@ -1452,6 +1452,8 @@
       padding-bottom: calc(var(--sp-xl) + var(--safe-bottom));
       max-height: 88dvh;
       overflow-y: auto;
+      transition: transform .25s ease;
+      touch-action: pan-y;
     }
     .sheet-handle {
       width: 36px; height: 4px;
@@ -1460,6 +1462,39 @@
       margin: 0 auto var(--sp-md);
     }
     .sheet-title { font-size: 18px; font-weight: 700; margin-bottom: var(--sp-md); letter-spacing: -0.3px; }
+
+    /* =============================================
+       EXIT TOAST (double-back-to-exit hint)
+       ============================================= */
+    .exit-toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(var(--nav-height) + var(--safe-bottom) + 14px);
+      transform: translateX(-50%) translateY(8px);
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--r-pill);
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      z-index: 500;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+      white-space: nowrap;
+    }
+    .exit-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* =============================================
+       WHAT'S NEW
+       ============================================= */
+    .whatsnew-item { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .whatsnew-item:last-of-type { border-bottom: none; }
+    .whatsnew-emoji { flex-shrink: 0; font-size: 18px; margin-top: 1px; }
+    .whatsnew-text { font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
+    .whatsnew-text b { color: var(--text-primary); font-weight: 600; }
   </style>
 </head>
 
@@ -2391,6 +2426,18 @@
   </div>
 </div>
 
+<!-- What's New -->
+<div class="overlay" id="sheet-whatsnew" onclick="closeSheet('sheet-whatsnew')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">What's New 🎉</div>
+    <div id="whatsnew-list"></div>
+    <button class="btn btn-primary btn-full" style="margin-top:var(--sp-md)" onclick="closeSheet('sheet-whatsnew')">Got it</button>
+  </div>
+</div>
+
+<div class="exit-toast" id="exit-toast">Press back again to exit</div>
+
 <script>
   // ─── VIEW MANAGEMENT ────────────────────────────
   const VIEW_ORDER = ['today', 'plan', 'train', 'progress', 'profile'];
@@ -2426,6 +2473,19 @@
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     const nav = document.querySelector(`.nav-item[data-view="${id}"]`);
     if (nav) nav.classList.add('active');
+
+    // Back-button bookkeeping: track "away from home" as a single layer,
+    // regardless of which non-today tab is active — so back always returns
+    // straight to today. The log screen tracks its own layer separately
+    // (see openLogScreen/closeLogScreen) since it can open from any tab.
+    if (id !== 'log') {
+      const hasViewLayer = _layers.some(l => l.type === 'view');
+      if (id === 'today') {
+        if (hasViewLayer) _dismissLayer('view', null);
+      } else if (!hasViewLayer) {
+        _pushLayer('view', null);
+      }
+    }
   }
 
   // ─── SWIPE NAVIGATION ───────────────────────────
@@ -2468,12 +2528,114 @@
     }, { passive: true });
   })();
 
+  // ─── BACK BUTTON / HISTORY LAYERS ───────────────
+  // Every dismissible layer (sheet, log screen, active session, or being on
+  // a non-home tab) pushes one browser-history entry, so the Android back
+  // button/gesture closes that layer instead of exiting the app. At the true
+  // home state (today tab, nothing open) a single back press is intercepted
+  // with a toast; a second press within the window lets the app actually exit.
+  const _layers = [];                // stack of {type, id} for open dismissible UI
+  let _inBackPop = false;            // true while reacting to a real hardware/gesture back
+  let _suppressNextPopstate = false; // true right after WE call history.back() ourselves
+  let _guardArmed = false;
+  let _lastExitPromptAt = 0;
+
+  function _armGuard() {
+    if (_guardArmed || _layers.length) return;
+    _guardArmed = true;
+    history.pushState({}, '');
+  }
+
+  function _pushLayer(type, id) {
+    _layers.push({ type, id });
+    history.pushState({}, '');
+  }
+
+  function _dismissLayer(type, id) {
+    const i = _layers.findIndex(l => l.type === type && (id == null || l.id === id));
+    if (i === -1) return;
+    _layers.splice(i, 1);
+    if (!_inBackPop) {
+      _suppressNextPopstate = true;
+      history.back();
+    }
+  }
+
+  function _handleBack() {
+    if (_layers.length > 0) {
+      const top = _layers[_layers.length - 1];
+      if (top.type === 'sheet') closeSheet(top.id);
+      else if (top.type === 'session') endSession(false);
+      else if (top.type === 'log') closeLogScreen();
+      else if (top.type === 'view') showView('today', 'back');
+      return;
+    }
+    _guardArmed = false;
+    _handleExitIntent();
+  }
+
+  function _handleExitIntent() {
+    const now = Date.now();
+    if (now - _lastExitPromptAt < 2500) return; // second press in time — let the app exit
+    _lastExitPromptAt = now;
+    const toast = document.getElementById('exit-toast');
+    toast?.classList.add('show');
+    setTimeout(() => toast?.classList.remove('show'), 2000);
+    // Re-arm the guard so the same protection applies next time Frank lands
+    // back on the home tab with nothing open — unless he confirmed exit.
+    setTimeout(() => {
+      if (_layers.length === 0 && !_guardArmed) _armGuard();
+    }, 2500);
+  }
+
+  window.addEventListener('popstate', () => {
+    if (_suppressNextPopstate) { _suppressNextPopstate = false; return; }
+    _inBackPop = true;
+    _handleBack();
+    _inBackPop = false;
+  });
+
   // ─── SHEET MANAGEMENT ───────────────────────────
   function openSheet(id) {
-    document.getElementById(id).classList.add('open');
+    const el = document.getElementById(id);
+    if (el.classList.contains('open')) return;
+    el.classList.add('open');
+    _pushLayer('sheet', id);
   }
   function closeSheet(id) {
-    document.getElementById(id).classList.remove('open');
+    const el = document.getElementById(id);
+    if (!el.classList.contains('open')) return;
+    el.classList.remove('open');
+    _dismissLayer('sheet', id);
+  }
+
+  // ─── SWIPE-DOWN TO CLOSE SHEETS ──────────────────
+  function initSheetSwipeToClose() {
+    document.querySelectorAll('.overlay .sheet').forEach(sheet => {
+      const overlay = sheet.closest('.overlay');
+      let startY = 0, dy = 0, dragging = false;
+
+      sheet.addEventListener('touchstart', e => {
+        dragging = sheet.scrollTop <= 0;
+        startY = e.touches[0].clientY;
+        dy = 0;
+      }, { passive: true });
+
+      sheet.addEventListener('touchmove', e => {
+        if (!dragging) return;
+        dy = e.touches[0].clientY - startY;
+        if (dy <= 0 || sheet.scrollTop > 0) { dragging = false; sheet.style.transform = ''; return; }
+        sheet.style.transition = 'none';
+        sheet.style.transform = `translateY(${dy}px)`;
+      }, { passive: true });
+
+      sheet.addEventListener('touchend', () => {
+        sheet.style.transition = '';
+        sheet.style.transform = '';
+        if (dragging && dy > 90) closeSheet(overlay.id);
+        dragging = false;
+      });
+    });
   }
 
   // ─── DATE ───────────────────────────────────────
@@ -3899,12 +4061,14 @@
       delBtn.style.display = 'none';
     }
     showView('log', 'forward');
+    if (!_layers.some(l => l.type === 'log')) _pushLayer('log', null);
   }
 
   function closeLogScreen() {
     showView(_logReturnView, 'back');
     renderUpcomingPills();
     initPlanDays();
+    _dismissLayer('log', null);
   }
 
   function saveLogEntry() {
@@ -4889,6 +5053,7 @@
     };
     document.getElementById('so-workout-label').textContent = wo.name;
     document.getElementById('session-overlay').classList.add('active');
+    _pushLayer('session', null);
     SES.sessionInterval = setInterval(_tickSession, 1000);
     const firstMov = wo.parts[0].moves[0];
     if (autoMode) {
@@ -5258,6 +5423,7 @@
     }
     SES = null;
     document.getElementById('session-overlay').classList.remove('active');
+    _dismissLayer('session', null);
     if (typeof releaseWakeLock === 'function') releaseWakeLock();
     renderWorkoutOverview();
   }
@@ -5296,8 +5462,34 @@
 
   function closeMovDetail() { closeSheet('sheet-mov-detail'); }
 
+  // ─── WHAT'S NEW ───────────────────────────────────
+  // Bump APP_VERSION (keep in step with sw.js CACHE_NAME) and add a new entry
+  // whenever a release ships something worth calling out. Shown once per
+  // version, the first time Frank opens the app after an update.
+  const APP_VERSION = 'v11';
+  const WHATS_NEW = {
+    v11: [
+      { emoji: '↩️', text: '<b>Back button now behaves</b> — it closes whatever\'s open instead of quitting the app. From the home tab, press back twice to actually exit.' },
+      { emoji: '👇', text: '<b>Swipe down to close</b> any pop-up sheet (movement details, session info, Garmin, race target).' },
+    ],
+  };
+
+  function checkWhatsNew() {
+    const seen = localStorage.getItem('tbf-last-seen-version');
+    if (seen === APP_VERSION) return;
+    const notes = WHATS_NEW[APP_VERSION];
+    localStorage.setItem('tbf-last-seen-version', APP_VERSION);
+    if (!notes || !notes.length) return;
+    document.getElementById('whatsnew-list').innerHTML = notes.map(n =>
+      `<div class="whatsnew-item"><div class="whatsnew-emoji">${n.emoji}</div><div class="whatsnew-text">${n.text}</div></div>`
+    ).join('');
+    openSheet('sheet-whatsnew');
+  }
+
   // ─── INIT ───────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
+    _armGuard();
+    initSheetSwipeToClose();
     applySettings();
     initDate();
     initPlanState();                    // load saved 2-week plan (with rollover) → sets _planWeeks
@@ -5330,6 +5522,7 @@
     } else {
       showLogin();
     }
+    checkWhatsNew();
   });
 </script>
 
