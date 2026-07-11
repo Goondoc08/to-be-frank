@@ -5871,8 +5871,14 @@
   // Bump APP_VERSION (keep in step with sw.js CACHE_NAME) and add a new entry
   // whenever a release ships something worth calling out. Shown once per
   // version, the first time Frank opens the app after an update.
-  const APP_VERSION = 'v12';
+  const APP_VERSION = 'v13';
   const WHATS_NEW = {
+    v13: [
+      { emoji: '📅', text: '<b>Stack multiple sessions on one day</b> — drag one session onto another to combine them, or use "Add to Today" from On Demand.' },
+      { emoji: '🔒', text: '<b>Plan sessions now stay put</b> — movements are locked once generated instead of changing every time you open them. A "Refresh movements" button re-rolls on purpose.' },
+      { emoji: '🎯', text: '<b>Train is now On Demand</b> — purely spontaneous training. Run picks from Easy/Tempo/Long/Interval; Strength and Mobility keep regenerating freely.' },
+      { emoji: '🚫', text: '<b>Exclude movements you don\'t like</b> — new Movement Library in Profile lets you preview and permanently exclude any exercise.' },
+    ],
     v12: [
       { emoji: '🏃', text: '<b>The Train tab now shows your actual planned run</b> — and pushing to Garmin sends that session, on the right day.' },
       { emoji: '📊', text: '<b>Week Summary and Personal Bests are live</b> — real numbers from your Garmin history and logged sessions.' },
