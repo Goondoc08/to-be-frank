@@ -11,7 +11,9 @@
   <meta name="apple-mobile-web-app-title" content="To Be Frank">
   <meta name="theme-color" content="#19191c">
 
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
   <link rel="manifest" href="manifest.json">
   <title>To Be Frank</title>
 
@@ -5871,8 +5873,11 @@
   // Bump APP_VERSION (keep in step with sw.js CACHE_NAME) and add a new entry
   // whenever a release ships something worth calling out. Shown once per
   // version, the first time Frank opens the app after an update.
-  const APP_VERSION = 'v13';
+  const APP_VERSION = 'v14';
   const WHATS_NEW = {
+    v14: [
+      { emoji: '🎨', text: '<b>New app icon</b> — updated for a crisper look on your home screen.' },
+    ],
     v13: [
       { emoji: '📅', text: '<b>Stack multiple sessions on one day</b> — drag one session onto another to combine them, or use "Add to Today" from On Demand.' },
       { emoji: '🔒', text: '<b>Plan sessions now stay put</b> — movements are locked once generated instead of changing every time you open them. A "Refresh movements" button re-rolls on purpose.' },
