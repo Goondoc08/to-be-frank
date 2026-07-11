@@ -1627,16 +1627,19 @@
         </button>
       </div>
 
-      <!-- AI plan CTA -->
-      <div class="card card-p" style="margin-bottom:var(--sp-md);text-align:center;border-style:dashed;border-color:var(--border-strong)">
-        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:var(--sp-sm);display:flex;align-items:center;justify-content:center;gap:6px">
-          Available once Garmin is connected
-          <span class="info-btn" style="margin-left:0" onclick="showTip(this,'Uses your Garmin activity history, readiness, current focus, race target, and detected activities to generate a balanced 7-day plan of runs, strength, and mobility.')">?</span>
+      <!-- Plan auto-status (plan builds automatically; drag to rearrange) -->
+      <div id="plan-autostatus" style="text-align:center;font-size:12px;color:var(--text-tertiary);margin-bottom:var(--sp-md);min-height:16px"></div>
+
+      <!-- Upcoming events (climbing trips, casual races, travel — not prescribed, but planned around) -->
+      <div class="settings-section" id="events-section">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-sm)">
+          <div style="display:flex;align-items:center">
+            <div class="label">Upcoming</div>
+            <span class="info-btn" onclick="showTip(this,'Trips, casual races, or anything else on the calendar that is not a prescribed session. The plan generator sees these ahead of time and adjusts around them instead of you having to fix it after the fact.')">?</span>
+          </div>
+          <div class="link-sm" onclick="openLogScreen({future:true, returnView:'plan'})">+ Add</div>
         </div>
-        <button class="btn btn-secondary" id="gen-week-btn" onclick="generateWeek()" disabled>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 3v1m0 16v1M4.22 4.22l.7.7m12.16 12.16.7.7M3 12h1m16 0h1M4.92 19.08l.7-.7M18.38 5.62l.7-.7"/><circle cx="12" cy="12" r="4"/></svg>
-          Generate Week
-        </button>
+        <div class="event-pills" id="upcoming-pills"></div>
       </div>
 
       <!-- Plan day rows -->
@@ -1644,8 +1647,8 @@
         <!-- Garmin detected activities shown as context at the bottom -->
         <div class="detected-section" id="detected-section" style="display:none">
           <div style="display:flex;align-items:center;margin-bottom:var(--sp-sm)">
-            <div class="label">Detected This Week via Garmin</div>
-            <span class="info-btn" onclick="showTip(this,'Unplanned activities pulled automatically from Garmin. These aren\'t prescribed — they\'re factored into how the next session\'s intensity is set. A hard bouldering day before a strength session will soften the load.')">?</span>
+            <div class="label">Detected This Week</div>
+            <span class="info-btn" onclick="showTip(this,'Unplanned activity from Garmin or logged by hand. These aren\'t prescribed — they\'re factored into how the next session\'s intensity is set. A hard bouldering day before a strength session will soften the load.')">?</span>
           </div>
           <div class="detected-pills" id="detected-pills"></div>
         </div>
@@ -1718,7 +1721,7 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
           <span class="gp-label">Push to Garmin &amp; Start</span>
         </button>
-        <button class="btn btn-secondary btn-full" onclick="openLogScreen()">Log Manually Instead</button>
+        <button class="btn btn-secondary btn-full" onclick="openLogScreen({returnView:'train'})">Log Manually Instead</button>
       </div>
 
       <!-- ── STRENGTH PANEL ── -->
@@ -1916,7 +1919,7 @@
           <!-- Race Target -->
           <div class="settings-row" style="border-bottom:none">
             <div class="sr-info"><div class="sr-title">Race Target</div></div>
-            <div class="sr-val link-sm" onclick="openSheet('sheet-race')">Add ›</div>
+            <div class="sr-val link-sm" id="race-val" onclick="openSheet('sheet-race')">Add ›</div>
           </div>
 
           <!-- Strength Focus sub-section -->
@@ -2039,6 +2042,15 @@
         </div>
       </div>
 
+      <!-- Plan -->
+      <div class="settings-section">
+        <div class="label" style="margin-bottom:var(--sp-sm)">Plan</div>
+        <div class="card card-p">
+          <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin-bottom:var(--sp-md)">Your plan builds and adapts automatically from your Garmin data, settings, and race target. If you want a fresh take on this week, you can regenerate it once per week.</div>
+          <button class="btn btn-secondary btn-full" id="gen-week-btn" onclick="generatePlan({manual:true})" disabled>Regenerate this week</button>
+        </div>
+      </div>
+
       <!-- Account -->
       <div class="settings-section">
         <div class="card card-p">
@@ -2070,46 +2082,77 @@
       .plan-session-card.dragging-src { opacity: 0.3; }
       .drag-clone { position: fixed; z-index: 3000; pointer-events: none; opacity: 0.96; background: var(--bg-card); border-radius: var(--r-md); box-shadow: 0 12px 30px rgba(0,0,0,0.5); }
       .plan-day.drop-target { outline: 2px dashed var(--accent); outline-offset: -3px; border-radius: var(--r-md); background: var(--accent-dim); }
+      /* Upcoming events */
+      .event-pills { display: flex; flex-wrap: wrap; gap: var(--sp-sm); }
+      .event-pill { display: flex; align-items: center; gap: 6px; background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: var(--r-pill); padding: 7px 12px; font-size: 12px; color: var(--text-primary); cursor: pointer; }
+      .event-pill .ep-emoji { font-size: 13px; }
+      .pdl-event { font-size: 11px; margin-top: 2px; }
     </style>
     <div class="view" id="view-log">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:var(--sp-md)">
-        <button class="icon-btn" onclick="showView('today','back')" aria-label="Back">
+        <button class="icon-btn" onclick="closeLogScreen()" aria-label="Back">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15,18 9,12 15,6"/></svg>
         </button>
-        <div style="font-size:20px;font-weight:700;letter-spacing:-0.4px">Log Activity</div>
+        <div>
+          <div id="log-title" style="font-size:20px;font-weight:700;letter-spacing:-0.4px">Log Activity</div>
+          <div id="log-subtitle" style="font-size:12px;color:var(--text-secondary)">Record something you did or are doing</div>
+        </div>
       </div>
+
+      <input type="hidden" id="log-id">
 
       <div class="settings-section">
         <div class="label" style="margin-bottom:var(--sp-sm)">Activity type</div>
-        <div class="focus-grid" id="log-type-grid">
-          <div class="focus-chip" data-ltype="run" onclick="selectLogType(this)">🏃 Run</div>
-          <div class="focus-chip" data-ltype="strength" onclick="selectLogType(this)">🏋️ Strength</div>
-          <div class="focus-chip" data-ltype="mobility" onclick="selectLogType(this)">🧘 Mobility</div>
-          <div class="focus-chip" data-ltype="tennis" onclick="selectLogType(this)">🎾 Tennis</div>
-          <div class="focus-chip" data-ltype="bouldering" onclick="selectLogType(this)">🧗 Bouldering</div>
-          <div class="focus-chip" data-ltype="cycling" onclick="selectLogType(this)">🚴 Cycling</div>
-          <div class="focus-chip" data-ltype="swim" onclick="selectLogType(this)">🏊 Swim</div>
-          <div class="focus-chip" data-ltype="other" onclick="selectLogType(this)">🏅 Other</div>
+        <div class="focus-grid" id="log-category-grid">
+          <div class="focus-chip" data-cat="run" onclick="selectLogCategory(this)">🏃 Run</div>
+          <div class="focus-chip" data-cat="strength" onclick="selectLogCategory(this)">🏋️ Strength</div>
+          <div class="focus-chip" data-cat="mobility" onclick="selectLogCategory(this)">🧘 Mobility</div>
+          <div class="focus-chip" data-cat="climbing" onclick="selectLogCategory(this)">🧗 Climbing / Bouldering</div>
+          <div class="focus-chip" data-cat="racquet" onclick="selectLogCategory(this)">🎾 Racquet Sports</div>
+          <div class="focus-chip" data-cat="cycling" onclick="selectLogCategory(this)">🚴 Cycling</div>
+          <div class="focus-chip" data-cat="swim" onclick="selectLogCategory(this)">🏊 Swim</div>
+          <div class="focus-chip" data-cat="travel" onclick="selectLogCategory(this)">✈️ Travel</div>
+          <div class="focus-chip" data-cat="other" onclick="selectLogCategory(this)">🏅 Other</div>
         </div>
+      </div>
+
+      <div class="settings-section" id="log-subtype-section" style="display:none">
+        <div class="label" style="margin-bottom:var(--sp-sm)">Type of session — optional</div>
+        <div class="focus-grid" id="log-subtype-grid"></div>
       </div>
 
       <div class="settings-section">
         <div class="card card-p">
+          <div style="margin-bottom:var(--sp-md)">
+            <div class="log-fl">Label — optional</div>
+            <input id="log-label" class="login-input" type="text" placeholder="e.g. 6x800m, Yosemite trip">
+          </div>
+          <div style="display:flex;gap:var(--sp-sm)">
+            <div style="flex:1">
+              <div class="log-fl">Start Date</div>
+              <input id="log-start" class="login-input" type="date" oninput="updateLogFormMode()">
+            </div>
+            <div style="flex:1">
+              <div class="log-fl">End Date — optional</div>
+              <input id="log-end" class="login-input" type="date">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section" id="log-performance-section">
+        <div class="card card-p">
           <div style="display:flex;gap:var(--sp-sm);margin-bottom:var(--sp-md)">
             <div style="flex:1">
-              <div class="log-fl">Date</div>
-              <input id="log-date" class="login-input" type="date">
-            </div>
-            <div style="flex:1">
-              <div class="log-fl">Duration (min)</div>
+              <div class="log-fl">Duration (min) — optional</div>
               <input id="log-duration" class="login-input" type="number" inputmode="numeric" placeholder="45">
             </div>
+            <div style="flex:1">
+              <div class="log-fl">Distance <span id="log-dist-unit">(km)</span> — optional</div>
+              <input id="log-distance" class="login-input" type="number" inputmode="decimal" placeholder="optional">
+            </div>
           </div>
-          <div style="margin-bottom:var(--sp-md)">
-            <div class="log-fl">Distance <span id="log-dist-unit">(km)</span> — optional</div>
-            <input id="log-distance" class="login-input" type="number" inputmode="decimal" placeholder="optional">
-          </div>
-          <div style="margin-bottom:var(--sp-md)">
+          <div>
             <div class="log-fl">Effort — optional</div>
             <div class="seg-control" id="log-effort">
               <div class="seg-btn" data-effort="easy" onclick="setLogEffort(this)">Easy</div>
@@ -2117,15 +2160,19 @@
               <div class="seg-btn" data-effort="hard" onclick="setLogEffort(this)">Hard</div>
             </div>
           </div>
-          <div>
-            <div class="log-fl">Note — optional</div>
-            <input id="log-note" class="login-input" type="text" placeholder="e.g. felt strong">
-          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="card card-p">
+          <div class="log-fl">Note — optional</div>
+          <input id="log-note" class="login-input" type="text" placeholder="e.g. felt strong">
         </div>
       </div>
 
       <div id="log-error" class="login-error" style="text-align:left"></div>
-      <button class="btn btn-primary btn-full" onclick="saveManualLog()">Save to History</button>
+      <button class="btn btn-primary btn-full" onclick="saveLogEntry()">Save</button>
+      <button class="btn btn-secondary btn-full" id="log-delete-btn" style="margin-top:var(--sp-sm);display:none" onclick="deleteLogEntryFromScreen()">Delete</button>
     </div><!-- /view-log -->
 
   </main><!-- /main -->
@@ -2216,7 +2263,7 @@
     <div class="sheet-title">Set Race Target 🏁</div>
     <div class="form-group">
       <label class="form-label">Race Distance</label>
-      <select class="form-input">
+      <select class="form-input" id="race-distance">
         <option value="">Select distance…</option>
         <option>5K</option>
         <option>10K</option>
@@ -2232,9 +2279,9 @@
     </div>
     <div class="form-group">
       <label class="form-label">Goal (optional)</label>
-      <input type="text" class="form-input" placeholder="e.g. Sub 1:45, just finish, top 10…">
+      <input type="text" class="form-input" id="race-goal" placeholder="e.g. Sub 1:45, just finish, top 10…">
     </div>
-    <button class="btn btn-primary btn-full">Set Target &amp; Build Plan</button>
+    <button class="btn btn-primary btn-full" onclick="saveRace()">Set Target &amp; Build Plan</button>
   </div>
 </div>
 
@@ -2570,12 +2617,18 @@
 
   function todayIdx() { const dow = new Date().getDay(); return dow === 0 ? 6 : dow - 1; } // Mon=0 … Sun=6
 
+  // Local calendar date as YYYY-MM-DD. Never use .toISOString() for date-only
+  // math — it converts to UTC, which silently shifts the date by a day during
+  // evening hours in negative-UTC-offset timezones (e.g. US evenings).
+  function localISO(date) {
+    return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+  }
+
   function mondayISO(date) {
     const d = new Date(date);
     const dow = d.getDay();
     d.setDate(d.getDate() + (dow === 0 ? -6 : 1 - dow));
-    d.setHours(0, 0, 0, 0);
-    return d.toISOString().slice(0, 10);
+    return localISO(d);
   }
 
   // Maps one week's day objects to the app's PLAN_DATA shape (7 entries).
@@ -2612,6 +2665,10 @@
       const d = new Date(now);
       d.setDate(now.getDate() + mondayOff + i);
       const isToday = _viewWeek === 'A' && d.toDateString() === now.toDateString();
+      const dISO = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      const ev = logsOnDate(dISO);
+      const evMeta = ev ? (CATEGORY_META[ev.category] || CATEGORY_META.other) : null;
+      const evBadge = ev ? `<div class="pdl-event" title="${evMeta.label}">${evMeta.emoji}</div>` : '';
       const data = PLAN_DATA[i] || { sessions: [] };
       const row = document.createElement('div');
       row.className = 'plan-day';
@@ -2621,6 +2678,7 @@
           <div class="pd-label${isToday ? ' today' : ''}">
             <div class="pdl-day">${name}</div>
             <div class="pdl-date">${d.getDate()}</div>
+            ${evBadge}
           </div>
           <div class="pd-rest">Rest</div>`;
       } else {
@@ -2640,6 +2698,7 @@
           <div class="pd-label${isToday ? ' today' : ''}">
             <div class="pdl-day">${name}</div>
             <div class="pdl-date">${d.getDate()}</div>
+            ${evBadge}
           </div>
           <div class="pd-sessions">${sessHTML}</div>`;
       }
@@ -2783,29 +2842,19 @@
     const data = loadData();
     data.planState = {
       weekStartISO: mondayISO(new Date()),
-      generatedAtISO: new Date().toISOString().slice(0, 10),
+      generatedAtISO: localISO(new Date()),
       weeks: _planWeeks,
     };
     saveData(data);
   }
 
   function loadPlanStateFromStorage() {
+    // Show whatever we have immediately; if it's from a past week, maybeAutoGenerate()
+    // silently regenerates a fresh plan once Garmin is connected (see below).
     const data = loadData();
     const ps = data.planState;
     if (!ps || !ps.weeks) return null;
-    const cur = mondayISO(new Date());
-    if (ps.weekStartISO === cur) return ps;
-    const nextMon = mondayISO(new Date(new Date(ps.weekStartISO).getTime() + 7 * 86400000));
-    if (ps.weekStartISO < cur && cur === nextMon && ps.weeks.B) {
-      // Exactly one week passed: the projected week becomes the live week.
-      ps.weeks.A = ps.weeks.B;
-      ps.weeks.B = null;
-      ps.weekStartISO = cur;
-      data.planState = ps;
-      saveData(data);
-      return ps;
-    }
-    return null; // stale (gap > 1 week, or no projected week) — Frank regenerates
+    return ps;
   }
 
   function initPlanState() {
@@ -2818,11 +2867,45 @@
   }
 
   // ─── AI PLAN GENERATION ─────────────────────────
-  // Latest Garmin data is cached in _lastActivities / _lastReadiness (declared
-  // with the plan state above) and feeds the plan request.
-  function setGenerateEnabled(on) {
+  // Weekly plan (Sonnet) builds automatically: first plan on connect, and a
+  // fresh one at each weekly rollover. The Profile "Regenerate this week"
+  // button is an optional manual redo, capped at one per week.
+  let _generating = false;
+
+  function weeksUntil(dateISO) {
+    if (!dateISO) return null;
+    const d = new Date(dateISO);
+    if (isNaN(d)) return null;
+    const days = Math.ceil((d.getTime() - Date.now()) / 86400000);
+    return days > 0 ? Math.ceil(days / 7) : 0;
+  }
+
+  function setPlanStatus(text) {
+    const el = document.getElementById('plan-autostatus');
+    if (el) el.textContent = text || '';
+  }
+
+  // Reflects the once-a-week manual-regenerate cap + connection state.
+  function updateRegenButton() {
     const btn = document.getElementById('gen-week-btn');
-    if (btn) btn.disabled = !on;
+    if (!btn) return;
+    const cur = mondayISO(new Date());
+    const usedThisWeek = loadData().lastManualRegenISO === cur;
+    const ready = _garminConnected || !!_planWeeks.A;
+    btn.disabled = _generating || !ready || usedThisWeek;
+    btn.textContent = _generating ? 'Regenerating…'
+      : usedThisWeek ? 'Regenerated this week ✓'
+      : 'Regenerate this week';
+  }
+
+  // Auto-build: on connect, generate if there's no plan or the stored plan is
+  // from a previous week (weekly rollover → fresh, data-adapted plan).
+  function maybeAutoGenerate() {
+    if (!_garminConnected || _generating) return;
+    const cur = mondayISO(new Date());
+    const ps = loadData().planState;
+    const stale = ps && ps.weekStartISO && ps.weekStartISO !== cur;
+    if (!_planWeeks.A || stale) generatePlan({ silent: true });
   }
 
   // Compact 2-week running summary for the model — small, no raw dumps.
@@ -2846,7 +2929,7 @@
     const recentOtherLoad = (activities || []).filter(a => {
       const t = a.activityType?.typeKey || '';
       const d = a.startTimeLocal ? new Date(a.startTimeLocal.replace(' ', 'T')) : null;
-      return t && !t.includes('running') && d && !isNaN(d) && d.getTime() >= otherSince;
+      return t && t !== 'travel' && !t.includes('running') && d && !isNaN(d) && d.getTime() >= otherSince;
     }).slice(0, 12).map(a => ({
       type: a.activityType.typeKey,
       min: a.duration ? Math.round(a.duration / 60) : 0,
@@ -2863,45 +2946,95 @@
     };
   }
 
-  async function generateWeek() {
-    const btn = document.getElementById('gen-week-btn');
-    if (!btn || btn.disabled) return;
-    const original = btn.innerHTML;
-    btn.disabled = true;
-    btn.textContent = 'Generating your plan…';
+  async function generatePlan(opts = {}) {
+    if (_generating) return;
+    const manual = !!opts.manual;
+    const cur = mondayISO(new Date());
+    if (manual && loadData().lastManualRegenISO === cur) { updateRegenButton(); return; }
+
+    _generating = true;
+    updateRegenButton();
+    setPlanStatus(manual ? 'Regenerating your week…' : 'Updating your plan…');
+    // Was the stored plan already for this week? (determines whether to keep pins)
+    const priorPs = loadData().planState;
+    const sameWeek = !!(priorPs && priorPs.weekStartISO === cur);
     try {
       const d = loadData();
-      const profile = { settings: d.settings, raceTarget: d.raceTarget };
+      const race = (d.raceTarget && d.raceTarget.date) ? d.raceTarget : null;
+      const profile = {
+        settings: d.settings,
+        raceTarget: d.raceTarget || null,
+        raceWeeksAway: race ? weeksUntil(race.date) : null,
+      };
       const activitySummary = buildActivitySummary(getMergedActivities(), _lastReadiness);
+      const upcomingEvents = upcomingEventsForPlan(21); // covers current + projected week
       const res = await authedFetch(SUPABASE_URL + '/functions/v1/generate-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profile, activitySummary }),
+        body: JSON.stringify({ profile, activitySummary, upcomingEvents }),
       });
       if (res.status === 401 || res.status === 403) { showLogin(); return; }
       const json = await res.json();
       if (!res.ok || !json.plan || !json.plan.current_week) throw new Error(json.error || 'Generation failed');
-      // Preserve any days Frank pinned (dragged into place) in the live week.
-      const oldA = _planWeeks.A;
       const newA = json.plan.current_week.days || [];
-      if (oldA) for (let i = 0; i < 7 && i < newA.length; i++) { if (oldA[i] && oldA[i].pinned) newA[i] = oldA[i]; }
-      _planWeeks = {
-        A: newA,
-        B: (json.plan.next_week && json.plan.next_week.days) || null,
-      };
+      // Preserve Frank's pinned days only when we're rebuilding the same week
+      // (a rollover is a genuinely new week, so no pins carry over).
+      if (sameWeek && _planWeeks.A) {
+        for (let i = 0; i < 7 && i < newA.length; i++) { if (_planWeeks.A[i] && _planWeeks.A[i].pinned) newA[i] = _planWeeks.A[i]; }
+      }
+      _planWeeks = { A: newA, B: (json.plan.next_week && json.plan.next_week.days) || null };
       _viewWeek = 'A';
       savePlanState();
       renderPlanView();
       renderTodayHero();
       initWeekStrip();
-      btn.innerHTML = original;
-      btn.textContent = 'Plan generated ✓';
-      setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 2500);
+      if (manual) { const dd = loadData(); dd.lastManualRegenISO = cur; saveData(dd); }
+      setPlanStatus('');
     } catch (e) {
       console.warn('generate-plan failed:', e);
-      btn.textContent = 'Generation failed — try again';
-      setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 2500);
+      setPlanStatus(manual ? 'Couldn’t regenerate — try again shortly.' : '');
+    } finally {
+      _generating = false;
+      updateRegenButton();
     }
+  }
+
+  // ─── RACE TARGET ────────────────────────────────
+  function raceLabel(r) {
+    if (!r || (!r.distance && !r.date)) return null;
+    const bits = [];
+    if (r.distance) bits.push(r.distance);
+    if (r.date) { const d = new Date(r.date + 'T00:00:00'); if (!isNaN(d)) bits.push(d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })); }
+    return bits.join(' · ');
+  }
+
+  function updateRaceCards() {
+    const label = raceLabel(loadData().raceTarget);
+    document.querySelectorAll('.race-card .rci-title').forEach(el => el.textContent = label ? 'Race Target' : 'Set a Race Target');
+    document.querySelectorAll('.race-card .rci-sub').forEach(el => el.textContent = label || 'Add a goal event and the plan builds toward it');
+    const rv = document.getElementById('race-val'); if (rv) rv.textContent = label ? (label + ' ›') : 'Add ›';
+  }
+
+  function initRace() {
+    const r = loadData().raceTarget;
+    if (r) {
+      const dist = document.getElementById('race-distance'); if (dist && r.distance) dist.value = r.distance;
+      const date = document.getElementById('race-date'); if (date && r.date) date.value = r.date;
+      const goal = document.getElementById('race-goal'); if (goal && r.goal) goal.value = r.goal;
+    }
+    updateRaceCards();
+  }
+
+  function saveRace() {
+    const distance = document.getElementById('race-distance').value || null;
+    const date = document.getElementById('race-date').value || null;
+    const goal = (document.getElementById('race-goal').value || '').trim() || null;
+    const d = loadData();
+    d.raceTarget = (distance || date) ? { distance, date, goal } : null;
+    saveData(d);
+    updateRaceCards();
+    closeSheet('sheet-race');
+    if (_garminConnected) generatePlan({ silent: true }); // rebuild toward the race
   }
 
   function openPlanSheet(dayIdx) {
@@ -3446,6 +3579,7 @@
     tennis:           { icon: '🎾', cls: 'tennis' },
     bouldering:       { icon: '🧗', cls: 'boulder' },
     rock_climbing:    { icon: '🧗', cls: 'boulder' },
+    travel:           { icon: '✈️', cls: 'run' },
   };
   const PLANNED_TYPES = new Set([
     'running', 'street_running', 'trail_running', 'treadmill_running', 'indoor_running', 'track_running',
@@ -3486,8 +3620,11 @@
       const km = a.distance ? +(a.distance / 1000).toFixed(2) : null;
 
       const isPaceType = PLANNED_TYPES.has(typeKey) || typeKey === 'walking' || typeKey === 'casual_walking' || typeKey === 'hiking';
+      const pending = !!a._pending;
       let statHTML = '';
-      if (isPaceType && km && a.duration) {
+      if (pending) {
+        statHTML = '<div class="act-stat"><div class="as-val" style="font-size:11px;color:var(--accent)">Add details ›</div></div>';
+      } else if (isPaceType && km && a.duration) {
         const paceSec = Math.round(a.duration / km);
         statHTML = '<div class="act-stat"><div class="as-val"><span data-pace-sec="' + paceSec +
           '" data-format="num">--</span></div><div class="as-unit" data-unit="pace-label">/km</div></div>';
@@ -3501,7 +3638,12 @@
       if (a._source === 'manual') detailParts.push('Logged');
       else if (a._source === 'inapp') detailParts.push('In-app');
 
-      return '<div class="activity-item"><div class="act-icon ' + meta.cls + '">' + meta.icon +
+      const clickable = a._source === 'manual' && a._logId;
+      const rowAttrs = clickable
+        ? ' onclick="openLogScreen({id:\'' + a._logId + '\', returnView:\'today\'})" style="cursor:pointer"'
+        : '';
+
+      return '<div class="activity-item"' + rowAttrs + '><div class="act-icon ' + meta.cls + '">' + meta.icon +
         '</div><div class="act-info"><div class="ai-name">' + name + '</div><div class="ai-detail">' +
         detailParts.join(' · ') + '</div></div>' + statHTML + '</div>';
     }).join('');
@@ -3539,49 +3681,79 @@
     }).join('');
   }
 
-  // ─── UNIFIED ACTIVITY LOG (Garmin + in-app + manual) ─────
-  // Everything Frank does — Garmin syncs, completed in-app sessions, and
-  // off-plan sessions logged by hand — flows through one merged list so it all
-  // shows in Recent Activity / Progress AND feeds the plan generator.
+  // ─── UNIFIED ACTIVITY LOG (Garmin + in-app + manual, past AND future) ─────
+  // One entry shape, one store (data.logs). Whether an entry is "history" or
+  // "a plan" is decided by its date at read time, not by which screen created
+  // it — the same entry naturally becomes history once its date arrives.
   let _garminConnected = false;
+  let _logReturnView = 'today';
 
-  const LOG_TYPE_TO_GARMIN = {
-    run: 'running', cycling: 'cycling', swim: 'lap_swimming', walk: 'walking',
-    strength: 'strength_training', mobility: 'yoga', tennis: 'tennis',
-    bouldering: 'bouldering', other: 'other',
+  const CATEGORY_META = {
+    run:      { emoji: '🏃', label: 'Run',                  garminType: 'running' },
+    strength: { emoji: '🏋️', label: 'Strength',             garminType: 'strength_training' },
+    mobility: { emoji: '🧘', label: 'Mobility',              garminType: 'yoga' },
+    climbing: { emoji: '🧗', label: 'Climbing / Bouldering', garminType: 'bouldering' },
+    racquet:  { emoji: '🎾', label: 'Racquet Sports',        garminType: 'tennis' },
+    cycling:  { emoji: '🚴', label: 'Cycling',               garminType: 'cycling' },
+    swim:     { emoji: '🏊', label: 'Swim',                  garminType: 'lap_swimming' },
+    travel:   { emoji: '✈️', label: 'Travel',                garminType: 'travel' },
+    other:    { emoji: '🏅', label: 'Other',                 garminType: 'other' },
   };
-  const LOG_TYPE_LABEL = {
-    run: 'Run', cycling: 'Cycling', swim: 'Swim', walk: 'Walk',
-    strength: 'Strength', mobility: 'Mobility', tennis: 'Tennis',
-    bouldering: 'Bouldering', other: 'Activity',
+  // Subtype chips only ever appear for entries dated today or earlier — a
+  // future plan doesn't have a "kind of session" yet, just a category.
+  const SUBTYPE_OPTIONS = {
+    run:      ['Easy', 'Tempo', 'Intervals', 'Long Run', 'Race', 'Recovery'],
+    climbing: ['Bouldering', 'Route / Sport', 'Trad', 'Gym Session'],
+    strength: ['Full Body', 'Upper Body', 'Lower Body', 'Core'],
+    racquet:  ['Match', 'Practice'],
+    cycling:  ['Road', 'Indoor', 'Mountain'],
+    swim:     ['Pool', 'Open Water'],
   };
 
-  function todayISO() {
-    const n = new Date();
-    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
-  }
+  function todayISO() { return localISO(new Date()); }
+  function tomorrowISO() { return localISO(new Date(Date.now() + 86400000)); }
 
   function getLocalLogs() {
     const l = loadData().logs;
     return Array.isArray(l) ? l : [];
   }
 
+  // An entry "has happened" (fully or partially) once its start date arrives.
+  function isEntryPastOrToday(e) { return e.startISO <= todayISO(); }
+  // An entry is still relevant to forward planning until its end date passes.
+  function isEntryUpcoming(e) {
+    const end = e.endISO || e.startISO;
+    const today = todayISO();
+    if (end > today) return true;   // extends into the future — still relevant to plan around
+    if (end < today) return false;  // fully in the past
+    // Ends exactly today: a single point in time is ambiguous (about to happen vs.
+    // already done) — treat it as upcoming only until it has real data recorded.
+    return !(e.durationMin || e.distanceKm);
+  }
+
   // Normalizes a local log into the Garmin activity shape the renderers +
-  // aggregators already understand.
+  // aggregators already understand. _pending marks a manual entry whose date
+  // has arrived but never got performance data filled in.
   function logToActivity(log) {
+    const meta = CATEGORY_META[log.category] || CATEGORY_META.other;
+    const displayName = log.label ? log.label : (log.subtype ? (meta.label + ' — ' + log.subtype) : meta.label);
     return {
-      activityType: { typeKey: LOG_TYPE_TO_GARMIN[log.type] || 'other' },
-      activityName: log.name || LOG_TYPE_LABEL[log.type] || 'Activity',
-      startTimeLocal: (log.dateISO || todayISO()) + ' 12:00:00',
+      activityType: { typeKey: meta.garminType },
+      activityName: displayName,
+      startTimeLocal: log.startISO + ' 12:00:00',
       duration: (log.durationMin || 0) * 60,
       distance: log.distanceKm ? log.distanceKm * 1000 : null,
       _source: log.source,
       _logId: log.id,
+      _pending: log.source === 'manual' && !log.durationMin && isEntryPastOrToday(log),
     };
   }
 
   function getMergedActivities() {
-    const merged = getLocalLogs().map(logToActivity).concat(_lastActivities || []);
+    const merged = getLocalLogs()
+      .filter(isEntryPastOrToday)
+      .map(logToActivity)
+      .concat(_lastActivities || []);
     merged.sort((a, b) => {
       const ta = new Date((a.startTimeLocal || '').replace(' ', 'T')).getTime() || 0;
       const tb = new Date((b.startTimeLocal || '').replace(' ', 'T')).getTime() || 0;
@@ -3600,23 +3772,53 @@
   function addLog(entry) {
     const d = loadData();
     d.logs = Array.isArray(d.logs) ? d.logs : [];
-    d.logs.unshift(Object.assign({ id: 'log_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6) }, entry));
+    const id = 'log_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+    d.logs.unshift(Object.assign({ id }, entry));
+    saveData(d);
+    refreshActivityViews();
+    return id;
+  }
+
+  function updateLogEntry(id, patch) {
+    const d = loadData();
+    d.logs = Array.isArray(d.logs) ? d.logs : [];
+    const e = d.logs.find(x => x.id === id);
+    if (e) Object.assign(e, patch);
     saveData(d);
     refreshActivityViews();
   }
 
-  // ─── MANUAL LOG SCREEN ─────
-  function openLogScreen() {
-    const dateEl = document.getElementById('log-date');
-    if (dateEl && !dateEl.value) dateEl.value = todayISO();
-    const unitEl = document.getElementById('log-dist-unit');
-    if (unitEl) unitEl.textContent = (loadData().settings?.units === 'mi') ? '(mi)' : '(km)';
-    const err = document.getElementById('log-error'); if (err) err.textContent = '';
-    showView('log', 'forward');
+  function deleteLogEntry(id) {
+    const d = loadData();
+    d.logs = (Array.isArray(d.logs) ? d.logs : []).filter(x => x.id !== id);
+    saveData(d);
+    refreshActivityViews();
   }
 
-  function selectLogType(el) {
-    document.querySelectorAll('#log-type-grid .focus-chip').forEach(c => c.classList.remove('sel'));
+  // Only drops plans that were never filled in with real data, once they're
+  // long past (90d) — anything with actual duration/distance is real history
+  // and is kept forever.
+  function pruneOldLogs() {
+    const d = loadData();
+    const list = Array.isArray(d.logs) ? d.logs : [];
+    const staleCutoff = new Date(todayISO()).getTime() - 90 * 86400000;
+    const kept = list.filter(e => {
+      if (e.durationMin || e.distanceKm) return true;
+      const end = e.endISO || e.startISO;
+      return new Date(end).getTime() >= staleCutoff;
+    });
+    if (kept.length !== list.length) { d.logs = kept; saveData(d); }
+  }
+
+  // ─── LOG / PLAN SCREEN (one form for both) ─────
+  function selectLogCategory(el) {
+    document.querySelectorAll('#log-category-grid .focus-chip').forEach(c => c.classList.remove('sel'));
+    el.classList.add('sel');
+    updateLogFormMode();
+  }
+
+  function selectLogSubtype(el) {
+    document.querySelectorAll('#log-subtype-grid .focus-chip').forEach(c => c.classList.remove('sel'));
     el.classList.add('sel');
   }
 
@@ -3625,24 +3827,173 @@
     el.classList.add('active');
   }
 
-  function saveManualLog() {
+  // Toggles subtype chips + performance fields based on category + whether
+  // the picked start date is today-or-earlier vs. in the future, and updates
+  // the screen title/subtitle to match.
+  function updateLogFormMode() {
+    const cat = document.querySelector('#log-category-grid .focus-chip.sel')?.dataset.cat;
+    const startVal = document.getElementById('log-start').value;
+    const isPastOrToday = !!startVal && startVal <= todayISO();
+
+    const subtypeSection = document.getElementById('log-subtype-section');
+    const subtypeGrid = document.getElementById('log-subtype-grid');
+    const options = cat && SUBTYPE_OPTIONS[cat];
+    if (isPastOrToday && options && options.length) {
+      subtypeSection.style.display = '';
+      if (subtypeGrid.dataset.forCat !== cat) {
+        subtypeGrid.dataset.forCat = cat;
+        subtypeGrid.innerHTML = options.map(o => `<div class="focus-chip" data-sub="${o}" onclick="selectLogSubtype(this)">${o}</div>`).join('');
+      }
+    } else {
+      subtypeSection.style.display = 'none';
+    }
+
+    const perf = document.getElementById('log-performance-section');
+    if (perf) perf.style.display = isPastOrToday ? '' : 'none';
+
+    const title = document.getElementById('log-title');
+    const subtitle = document.getElementById('log-subtitle');
+    if (title) title.textContent = isPastOrToday ? 'Log Activity' : 'Plan Ahead';
+    if (subtitle) subtitle.textContent = isPastOrToday
+      ? 'Record something you did or are doing'
+      : 'Add something coming up so your plan can adjust around it';
+  }
+
+  function openLogScreen(opts = {}) {
+    _logReturnView = opts.returnView || 'today';
+    const err = document.getElementById('log-error'); if (err) err.textContent = '';
+    const delBtn = document.getElementById('log-delete-btn');
+    const unitEl = document.getElementById('log-dist-unit');
+    if (unitEl) unitEl.textContent = (loadData().settings?.units === 'mi') ? '(mi)' : '(km)';
+
+    if (opts.id) {
+      const entry = getLocalLogs().find(e => e.id === opts.id);
+      if (!entry) return;
+      document.getElementById('log-id').value = entry.id;
+      document.querySelectorAll('#log-category-grid .focus-chip').forEach(c => c.classList.toggle('sel', c.dataset.cat === entry.category));
+      document.getElementById('log-label').value = entry.label || '';
+      document.getElementById('log-start').value = entry.startISO;
+      document.getElementById('log-end').value = entry.endISO || '';
+      document.getElementById('log-duration').value = entry.durationMin || '';
+      const mi = (loadData().settings?.units === 'mi');
+      document.getElementById('log-distance').value = entry.distanceKm != null ? (mi ? +(entry.distanceKm / 1.60934).toFixed(2) : entry.distanceKm) : '';
+      document.querySelectorAll('#log-effort .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.effort === entry.effort));
+      document.getElementById('log-note').value = entry.note || '';
+      updateLogFormMode();
+      if (entry.subtype) {
+        const chip = document.querySelector(`#log-subtype-grid .focus-chip[data-sub="${entry.subtype}"]`);
+        if (chip) chip.classList.add('sel');
+      }
+      delBtn.style.display = '';
+    } else {
+      document.getElementById('log-id').value = '';
+      document.querySelectorAll('#log-category-grid .focus-chip').forEach(c => c.classList.remove('sel'));
+      document.getElementById('log-label').value = '';
+      document.getElementById('log-start').value = opts.future ? tomorrowISO() : todayISO();
+      document.getElementById('log-end').value = '';
+      document.getElementById('log-duration').value = '';
+      document.getElementById('log-distance').value = '';
+      document.querySelectorAll('#log-effort .seg-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('log-note').value = '';
+      updateLogFormMode();
+      delBtn.style.display = 'none';
+    }
+    showView('log', 'forward');
+  }
+
+  function closeLogScreen() {
+    showView(_logReturnView, 'back');
+    renderUpcomingPills();
+    initPlanDays();
+  }
+
+  function saveLogEntry() {
     const err = document.getElementById('log-error');
-    const type = document.querySelector('#log-type-grid .focus-chip.sel')?.dataset.ltype;
-    const dateISO = document.getElementById('log-date').value || todayISO();
-    const durationMin = parseInt(document.getElementById('log-duration').value, 10);
+    const id = document.getElementById('log-id').value || null;
+    const category = document.querySelector('#log-category-grid .focus-chip.sel')?.dataset.cat;
+    const startISO = document.getElementById('log-start').value;
+    let endISO = document.getElementById('log-end').value || null;
+    if (!category) { if (err) err.textContent = 'Pick an activity type.'; return; }
+    if (!startISO) { if (err) err.textContent = 'Pick a date.'; return; }
+    if (endISO && endISO < startISO) { if (err) err.textContent = 'End date is before the start date.'; return; }
+
+    const isPastOrToday = startISO <= todayISO();
+    const subtype = document.querySelector('#log-subtype-grid .focus-chip.sel')?.dataset.sub || null;
+    const label = document.getElementById('log-label').value.trim();
+    const durationRaw = parseInt(document.getElementById('log-duration').value, 10);
     const distanceRaw = parseFloat(document.getElementById('log-distance').value);
     const effort = document.querySelector('#log-effort .seg-btn.active')?.dataset.effort || null;
-    const note = (document.getElementById('log-note').value || '').trim();
-    if (!type) { if (err) err.textContent = 'Pick an activity type.'; return; }
-    if (!durationMin || durationMin <= 0) { if (err) err.textContent = 'Enter a duration in minutes.'; return; }
+    const note = document.getElementById('log-note').value.trim();
     const mi = (loadData().settings?.units === 'mi');
-    const distanceKm = isNaN(distanceRaw) ? null : (mi ? +(distanceRaw * 1.60934).toFixed(2) : distanceRaw);
-    addLog({ source: 'manual', type, dateISO, durationMin, distanceKm, effort, note, name: LOG_TYPE_LABEL[type] || 'Activity' });
-    // reset the form for next time
-    document.querySelectorAll('#log-type-grid .focus-chip').forEach(c => c.classList.remove('sel'));
-    document.querySelectorAll('#log-effort .seg-btn').forEach(b => b.classList.remove('active'));
-    ['log-duration', 'log-distance', 'log-note'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-    showView('today', 'back');
+    const durationMin = (isPastOrToday && durationRaw > 0) ? durationRaw : null;
+    const distanceKm = (isPastOrToday && !isNaN(distanceRaw)) ? (mi ? +(distanceRaw * 1.60934).toFixed(2) : distanceRaw) : null;
+
+    const patch = {
+      category, subtype: isPastOrToday ? subtype : null, label, startISO, endISO,
+      durationMin, distanceKm, effort: isPastOrToday ? effort : null, note, source: 'manual',
+    };
+    const wasUpcoming = isEntryUpcoming(patch);
+    if (id) updateLogEntry(id, patch); else addLog(patch);
+    closeLogScreen();
+    if (_garminConnected && wasUpcoming) generatePlan({ silent: true }); // let the plan account for it going forward
+  }
+
+  function deleteLogEntryFromScreen() {
+    const id = document.getElementById('log-id').value;
+    if (!id) return;
+    const entry = getLocalLogs().find(e => e.id === id);
+    const wasUpcoming = entry && isEntryUpcoming(entry);
+    deleteLogEntry(id);
+    closeLogScreen();
+    if (_garminConnected && wasUpcoming) generatePlan({ silent: true });
+  }
+
+  // ─── UPCOMING PILLS (Plan tab) ─────
+  function renderUpcomingPills() {
+    const container = document.getElementById('upcoming-pills');
+    if (!container) return;
+    const upcoming = getLocalLogs()
+      .filter(isEntryUpcoming)
+      .sort((a, b) => a.startISO.localeCompare(b.startISO));
+    if (!upcoming.length) {
+      container.innerHTML = '<div style="font-size:12px;color:var(--text-tertiary)">Nothing on the calendar yet</div>';
+      return;
+    }
+    container.innerHTML = upcoming.map(e => {
+      const meta = CATEGORY_META[e.category] || CATEGORY_META.other;
+      const s = new Date(e.startISO + 'T00:00:00');
+      const en = e.endISO ? new Date(e.endISO + 'T00:00:00') : null;
+      const fmt = (dt) => dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      const dateBit = (en && en.getTime() !== s.getTime()) ? (fmt(s) + '–' + fmt(en)) : fmt(s);
+      const text = (e.label || (e.subtype ? meta.label + ' — ' + e.subtype : meta.label)) + ' · ' + dateBit;
+      return `<div class="event-pill" onclick="openLogScreen({id:'${e.id}', returnView:'plan'})"><span class="ep-emoji">${meta.emoji}</span>${text}</div>`;
+    }).join('');
+  }
+
+  // Events overlapping [today, today+windowDays] for the plan generator.
+  function upcomingEventsForPlan(windowDays) {
+    const horizon = localISO(new Date(Date.now() + windowDays * 86400000));
+    return getLocalLogs()
+      .filter(e => isEntryUpcoming(e) && e.startISO <= horizon)
+      .sort((a, b) => a.startISO.localeCompare(b.startISO))
+      .slice(0, 8)
+      .map(e => {
+        const meta = CATEGORY_META[e.category] || CATEGORY_META.other;
+        return {
+          type: e.category,
+          label: e.label || (e.subtype ? meta.label + ' — ' + e.subtype : meta.label),
+          startISO: e.startISO,
+          endISO: e.endISO || e.startISO,
+        };
+      });
+  }
+
+  // Does dateISO fall inside any logged entry (past or future)? Used to badge
+  // plan-day rows.
+  // Only badges upcoming-relevant entries — a routine completed workout
+  // shouldn't get a redundant calendar badge on top of its session card.
+  function logsOnDate(dateISO) {
+    return getLocalLogs().find(e => isEntryUpcoming(e) && dateISO >= e.startISO && dateISO <= (e.endISO || e.startISO)) || null;
   }
 
   async function refreshGarminData() {
@@ -3673,9 +4024,10 @@
       _lastActivities = data.activities || [];
       _lastReadiness = data.readiness || null;
       _garminConnected = true;
-      setGenerateEnabled(true);
       renderReadiness(data.readiness);
       refreshActivityViews();
+      updateRegenButton();
+      maybeAutoGenerate();   // seamless: first plan, or a fresh one on a new week
     } catch (e) {
       console.warn('Garmin data fetch failed:', e);
       setGarminBadges('Sync issue', false);
@@ -3755,7 +4107,7 @@
       const res = await authedFetch(SUPABASE_URL + '/functions/v1/garmin-push-workout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workout, date: new Date().toISOString().slice(0, 10) })
+        body: JSON.stringify({ workout, date: localISO(new Date()) })
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Push failed');
@@ -4494,7 +4846,7 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="margin-right:6px"><polygon points="5,3 19,12 5,21"/></svg>
         Start Workout
       </button>
-      <button class="btn btn-secondary btn-full" onclick="openLogScreen()">Log Manually Instead</button>
+      <button class="btn btn-secondary btn-full" onclick="openLogScreen({returnView:'train'})">Log Manually Instead</button>
     `;
   }
 
@@ -4901,7 +5253,7 @@
       // Completed guided strength session → record it in the unified history.
       if (completed) {
         const durationMin = Math.max(1, Math.round((Date.now() - SES.startTime) / 60000));
-        addLog({ source: 'inapp', type: 'strength', dateISO: todayISO(), durationMin, distanceKm: null, effort: null, note: '', name: SES.wo.name || 'Strength Session' });
+        addLog({ source: 'inapp', category: 'strength', subtype: null, startISO: todayISO(), endISO: null, durationMin, distanceKm: null, effort: null, note: '', label: SES.wo.name || 'Strength Session' });
       }
     }
     SES = null;
@@ -4965,6 +5317,10 @@
     initStrength();
     initMobility();
     initInstallPrompt();
+    initRace();
+    pruneOldLogs();
+    renderUpcomingPills();
+    updateRegenButton();
     refreshActivityViews();   // show any locally-logged activity immediately
     // Auth gate: only reach out to Garmin once Frank has a session. Local
     // features (logging, plan, settings) are already rendered above; the login

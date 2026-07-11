@@ -5,7 +5,7 @@
 import { corsHeaders, handleOptions } from "../_shared/cors.ts";
 import { requireUser } from "../_shared/auth.ts";
 
-const MODEL = "claude-opus-4-8";
+const MODEL = "claude-sonnet-5";
 
 // JSON schema the model must fill. Matches PLAN_DATA[i].sessions[0] in index.html:
 // run days carry `blocks`, strength/mobility days carry `movements`, rest days
@@ -83,7 +83,9 @@ Rules (apply to BOTH weeks):
 - Only prescribe running, runner-focused strength, and mobility/recovery. NEVER prescribe tennis or bouldering — those are things Frank does on his own; account for their fatigue but don't schedule them.
 - Respect the athlete's available training days: put Rest on days not in that list, and place the long run on the requested long-run day.
 - Honor the focus, approach (build vs maintain), and strength-focus settings, and adapt around any injuries (lower impact, avoid loading the affected area).
-- Scale volume/intensity to the recent-activity summary — don't jump mileage more than ~10% week over week; if readiness is low or history is thin, err easier.
+- Scale volume/intensity to the recent-activity summary — don't jump mileage more than ~10% week over week; if readiness is low or recent non-run load (recentOtherLoad: bouldering/tennis/etc.) is high, or history is thin, err easier.
+- UPCOMING EVENTS: the request includes upcomingEvents — things on Frank's calendar that are NOT prescribed sessions (a climbing/bouldering trip, a casual race he is not training for, travel, etc.), each with a type, label, startISO, and endISO. Use judgment based on the event's type and length, not a fixed rule: a multi-day climbing trip usually means easing volume/intensity the day before and going light or resting during/right after (he will be fatigued and off his normal schedule); a short casual race or travel day may just mean lighter training that day, or none at all if he is unavailable. Do not schedule prescribed running/strength/mobility sessions that conflict with days the event makes him unavailable — use Rest or a light day instead. These events span BOTH weeks you are generating (current + next) — apply this to whichever days they land on in either week.
+- RACE PERIODIZATION: if profile.raceTarget has a date and profile.raceWeeksAway is a number, build toward it. Roughly: many weeks out → base/build (grow easy volume + the long run toward the race distance); mid-cycle → add race-specific quality (tempo/threshold/intervals); final 1–2 weeks → TAPER (cut volume ~30–50%, keep some sharpness, easy long run). If no race is set, just progress per the approach setting.
 
 For each day set fields precisely for the app UI:
 - type: "run" | "strength" | "mobility" | "rest".
@@ -92,7 +94,7 @@ For each day set fields precisely for the app UI:
 - STRENGTH & MOBILITY days: fill "movements" (thumb emoji, name, detail like "3 × 12 reps · moderate load"), leave "blocks" empty.
 - REST days: type "rest", name "Rest", empty blocks and movements, brief sub/desc.
 
-Do not include HR-zone or pace numbers you weren't given; describe effort qualitatively (Zone 2 / conversational / threshold / comfortably hard).`;
+PACE TARGETS: if activitySummary has avgPaceSecPerKm and recentRuns, attach concrete pace ranges to run sessions, derived from Frank's OWN data — don't invent numbers he didn't earn. The pace data is in seconds per kilometre; present paces in the athlete's units (profile.settings.units is "mi" or "km" — convert if "mi"). Anchor easy pace to his easier recent runs; make tempo/threshold roughly 45–75 sec/km faster than easy; intervals faster still. Give ranges (e.g. "easy 5:40–6:00/km"), put them in the block "sub" text, and keep the qualitative descriptor too (Zone 2 / conversational / threshold / comfortably hard). If there isn't enough pace data, stay qualitative and omit numbers rather than guessing.`;
 
 Deno.serve(async (req) => {
   const preflight = handleOptions(req);
@@ -110,10 +112,12 @@ Deno.serve(async (req) => {
 
   let profile: unknown;
   let activitySummary: unknown;
+  let upcomingEvents: unknown;
   try {
     const body = await req.json();
     profile = body.profile;
     activitySummary = body.activitySummary;
+    upcomingEvents = body.upcomingEvents || [];
   } catch {
     return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
       status: 400,
@@ -131,6 +135,7 @@ Deno.serve(async (req) => {
 
   const userPrompt = `Athlete profile / settings:\n${JSON.stringify(profile, null, 2)}\n\n` +
     `Recent Garmin activity summary (last ~2 weeks):\n${JSON.stringify(activitySummary, null, 2)}\n\n` +
+    `Upcoming calendar events (trips, casual races, travel — NOT prescribed sessions, plan around them):\n${JSON.stringify(upcomingEvents, null, 2)}\n\n` +
     `Generate the current week and the projected next week now.`;
 
   try {
