@@ -3362,10 +3362,14 @@
       let movs = s.movements || [];
       if (s.wo && s.wo.parts) {
         movs = [];
-        s.wo.parts.forEach(part => part.moves.forEach(m => movs.push({ thumb: m.emoji, name: m.name, detail: fmtRx(m, part) })));
+        s.wo.parts.forEach(part => part.moves.forEach(m => movs.push({ id: m.id, thumb: m.emoji, name: m.name, detail: fmtRx(m, part) })));
       }
+      // Materialized movements have a real catalog id — tappable to preview
+      // (video/cues) via the same sheet Train/On Demand use. The AI's raw
+      // display-only text (pre-materialization fallback) has no id to look
+      // up, so it stays inert.
       const movsHTML = movs.map(m => `
-        <div class="movement-item" style="cursor:default">
+        <div class="movement-item"${m.id ? ` onclick="openMovDetail('${m.id}')"` : ' style="cursor:default"'}>
           <div class="mov-thumb">${m.thumb}</div>
           <div class="mov-info">
             <div class="mn">${m.name}</div>
